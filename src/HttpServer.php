@@ -3,19 +3,17 @@
 namespace Wind\Web;
 
 use FastRoute\Dispatcher;
-use Wind\Base\Application;
-use Wind\Base\Config;
-use Wind\Base\Event\SystemError;
-use Wind\Base\Exception\CallableException;
-use Wind\Base\Exception\ExitException;
 use Invoker\Invoker;
 use Invoker\ParameterResolver\AssociativeArrayResolver;
 use Invoker\ParameterResolver\Container\TypeHintContainerResolver;
 use Invoker\ParameterResolver\DefaultValueResolver;
-use Invoker\ParameterResolver\NumericArrayResolver;
 use Invoker\ParameterResolver\ResolverChain;
 use Invoker\ParameterResolver\TypeHintResolver;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Wind\Base\Application;
+use Wind\Base\Event\SystemError;
+use Wind\Base\Exception\CallableException;
+use Wind\Base\Exception\ExitException;
 use Workerman\Connection\TcpConnection;
 use Workerman\Protocols\Http\Request;
 use Workerman\Protocols\Http\Response;
@@ -56,14 +54,13 @@ class HttpServer extends Worker
         $this->app->startComponents($worker);
 
         //初始化路由
-	    $route = $this->app->container->get(Config::class)->get('route');
+	    $route = $this->app->config->get('route');
         $this->dispatcher = \FastRoute\simpleDispatcher($route);
 
         //初始化依赖注入 callable Invoker
         //此 Invoker 主要加入了 TypeHintResolver，可以调用方法是根据类型注入临时的 Request
         //否则直接使用 $this->container->call()
         $parameterResolver = new ResolverChain(array(
-            new NumericArrayResolver,
             new AssociativeArrayResolver,
             new DefaultValueResolver,
             new TypeHintResolver,
