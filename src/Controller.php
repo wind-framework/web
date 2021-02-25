@@ -11,4 +11,9 @@ abstract class Controller
     public function init()
     {}
 
+    public function middlewares()
+    {
+        return [];
+    }
+
 }
