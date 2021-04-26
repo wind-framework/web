@@ -2,7 +2,6 @@
 
 namespace Wind\Web;
 
-use Wind\Web\Exception\RequestUnsupportedException;
 use Workerman\Connection\TcpConnection;
 
 /**
@@ -28,6 +27,7 @@ class Uri implements \Psr\Http\Message\UriInterface
     protected $path;
     protected $query;
     protected $fragment;
+    protected $userInfo = '';
 
     public function __construct(\Workerman\Protocols\Http\Request $request, TcpConnection $connection)
     {
@@ -56,7 +56,7 @@ class Uri implements \Psr\Http\Message\UriInterface
      */
     public function getUserInfo()
     {
-        return '';
+        return $this->userInfo;
     }
 
     /**
@@ -64,7 +64,7 @@ class Uri implements \Psr\Http\Message\UriInterface
      */
     public function getHost()
     {
-        return $this->host ?: $this->request->host(true);
+        return $this->host ?: $this->request->host(true) ?: '';
     }
 
     /**
@@ -133,7 +133,9 @@ class Uri implements \Psr\Http\Message\UriInterface
      */
     public function withUserInfo($user, $password = null)
     {
-        throw new RequestUnsupportedException('Unsupported method \''.__METHOD__.'\' for Uri.');
+        $uri = clone $this;
+        $uri->userInfo = $password ? $user.':'.$password : $user;
+        return $uri;
     }
 
     /**
@@ -195,7 +197,6 @@ class Uri implements \Psr\Http\Message\UriInterface
      */
     public function __toString()
     {
-
         $url = $this->getScheme().'://'.$this->getHost();
 
         $port = $this->getPort();
@@ -212,4 +213,5 @@ class Uri implements \Psr\Http\Message\UriInterface
 
         return $url;
     }
+
 }

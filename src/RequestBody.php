@@ -7,7 +7,21 @@ use Psr\Http\Message\StreamInterface;
 class RequestBody implements StreamInterface
 {
 
-    public function __toString() { }
+    /**
+     * RawBody
+     *
+     * @var string
+     */
+    public $rawBody;
+
+    public function __construct($rawBody)
+    {
+        $this->rawBody = $rawBody;
+    }
+
+    public function __toString() {
+        return $this->rawBody;
+    }
 
     public function close() { }
 

@@ -5,7 +5,6 @@ namespace Wind\Web;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UriInterface;
-use Wind\Web\Exception\RequestUnsupportedException;
 use Workerman\Connection\TcpConnection;
 
 /**
@@ -126,6 +125,9 @@ class Request implements ServerRequestInterface
         return $req;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function withoutHeader($name)
     {
         if (!$this->hasHeader($name)) {
@@ -136,13 +138,20 @@ class Request implements ServerRequestInterface
         return $req;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getBody()
     {
-        //Todo: implement
-        throw new RequestUnsupportedException('Unsupported method \'' . __METHOD__ . '\' for Request.');
-        // return $this->body ?: $this->request->rawBody();
+        if ($this->body === null) {
+            $this->body = new RequestBody($this->request->rawBody());
+        }
+        return $this->body;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function withBody(StreamInterface $body)
     {
         $req = clone $this;
@@ -150,11 +159,17 @@ class Request implements ServerRequestInterface
         return $req;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getRequestTarget()
     {
         return $this->requestTarget ?: $this->request->uri();
     }
 
+    /**
+     * @inheritDoc
+     */
     public function withRequestTarget($requestTarget)
     {
         $req = clone $this;
@@ -162,11 +177,17 @@ class Request implements ServerRequestInterface
         return $req;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getMethod()
     {
         return $this->method ?: $this->request->method();
     }
 
+    /**
+     * @inheritDoc
+     */
     public function withMethod($method)
     {
         if (!in_array(strtolower($method), ['get', 'head', 'post', 'put', 'delete', 'connect', 'options', 'trace', 'patch'])) {
@@ -178,6 +199,9 @@ class Request implements ServerRequestInterface
         return $req;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getUri()
     {
         if ($this->uri === null) {
@@ -187,31 +211,39 @@ class Request implements ServerRequestInterface
         return $this->uri;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function withUri(UriInterface $uri, $preserveHost = false)
     {
-        $req = clone $this;
-        $req->uri = $uri;
-
-        if ($preserveHost && $this->request->host() == null) {
-            $host = $uri->getHost();
-            if ($host != null) {
-                $req->host = $host;
-            }
+        if ($preserveHost && $uri->getHost() == '' && ($host = $this->getUri()->getHost()) != '') {
+            $uri->withHost($host);
         }
 
+        $req = clone $this;
+        $req->uri = $uri;
         return $req;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getServerParams()
     {
         return $_SERVER;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getCookieParams()
     {
         return $this->cookies ?: $this->request->cookie();
     }
 
+    /**
+     * @inheritDoc
+     */
     public function withCookieParams(array $cookies)
     {
         $req = clone $this;
@@ -219,11 +251,17 @@ class Request implements ServerRequestInterface
         return $req;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getQueryParams()
     {
         return $this->queryParams ?: $this->request->get();
     }
 
+    /**
+     * @inheritDoc
+     */
     public function withQueryParams(array $query)
     {
         $req = clone $this;
@@ -231,12 +269,43 @@ class Request implements ServerRequestInterface
         return $req;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getUploadedFiles()
     {
-        //Todo: implement
-        throw new RequestUnsupportedException('Unsupported method \'' . __METHOD__ . '\' for Request.');
+        if ($this->uploadedFiles) {
+            return $this->uploadedFiles;
+        }
+
+        $uploadedFiles = [];
+        $files = $this->request->file();
+
+        if ($files) {
+            foreach ($files as $name => $file) {
+                $uploadFile = new UploadedFile($file);
+                $uploadedFiles[] = $uploadFile;
+            }
+        }
+
+        return $this->uploadedFiles = $uploadedFiles;
     }
 
+    /**
+     * Get an uploaded file
+     *
+     * @param string $name
+     * @return UploadedFile|null
+     */
+    public function getUploadedFile($name)
+    {
+        $uplaodFiles = $this->getUploadedFiles();
+        return $uplaodFiles[$name] ?? null;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function withUploadedFiles(array $uploadedFiles)
     {
         $req = clone $this;
