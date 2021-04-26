@@ -31,13 +31,17 @@ class Request implements ServerRequestInterface
 
     protected $requestTarget;
     protected $protocolVersion;
+    protected $headers;
     protected $host;
     protected $method;
     protected $uri;
     protected $cookies;
     protected $queryParams;
+    protected $body;
     protected $parsedBody;
-
+    protected $uploadedFiles;
+    protected $attributes = [];
+    
     public function __construct(\Workerman\Protocols\Http\Request $request, TcpConnection $connection)
     {
         $this->request = $request;
@@ -55,55 +59,100 @@ class Request implements ServerRequestInterface
         return $req;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getHeaders()
     {
-        return $this->request->header();
+        if ($this->headers === null) {
+            $this->headers = $this->request->header();
+        }
+
+        return $this->headers;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function hasHeader($name)
     {
-        return $this->request->header($name) !== null;
+        $headers = $this->getHeaders();
+        return isset($headers[$name]);
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getHeader($name)
     {
-        $v = $this->request->header($name);
-        return $v !== null ? [$v] : [];
-    }
+        $headers = $this->getHeaders();
 
+        if (isset($headers[$name])) {
+            return is_array($headers[$name]) ? $headers[$name] : [$headers[$name]];
+        }
+
+        return [];
+    }
+    
+    /**
+     * @inheritDoc
+     */
     public function getHeaderLine($name)
     {
-        return $this->request->header($name);
+        $headers = $this->getHeaders($name);
+        return join(',', $headers);
     }
 
+    /**
+     * @inheritDoc
+     */
     public function withHeader($name, $value)
     {
-        throw new RequestUnsupportedException('Unsupported method \''.__METHOD__.'\' for Request.');
+        $req = clone $this;
+        $ls = $req->getHeader($name);
+        $ls[] = $value;
+        $req->headers[$name] = $ls;
+        return $req;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function withAddedHeader($name, $value)
     {
-        throw new RequestUnsupportedException('Unsupported method \''.__METHOD__.'\' for Request.');
+        $req = clone $this;
+        $req->getHeaders();
+        $req->headers[$name] = $value;
+        return $req;
     }
 
     public function withoutHeader($name)
     {
-        throw new RequestUnsupportedException('Unsupported method \''.__METHOD__.'\' for Request.');
+        if (!$this->hasHeader($name)) {
+            return $this;
+        }
+        $req = clone $this;
+        unset($req->headers[$name]);
+        return $req;
     }
 
     public function getBody()
     {
-        throw new RequestUnsupportedException('Unsupported method \''.__METHOD__.'\' for Request.');
+        //Todo: implement
+        throw new RequestUnsupportedException('Unsupported method \'' . __METHOD__ . '\' for Request.');
+        // return $this->body ?: $this->request->rawBody();
     }
 
     public function withBody(StreamInterface $body)
     {
-        throw new RequestUnsupportedException('Unsupported method \''.__METHOD__.'\' for Request.');
+        $req = clone $this;
+        $req->body = $body;
+        return $req;
     }
 
     public function getRequestTarget()
     {
-        return $this->requestTarget ?? $this->request->uri();
+        return $this->requestTarget ?: $this->request->uri();
     }
 
     public function withRequestTarget($requestTarget)
@@ -184,19 +233,28 @@ class Request implements ServerRequestInterface
 
     public function getUploadedFiles()
     {
-        // TODO: Implement getUploadedFiles() method.
+        //Todo: implement
+        throw new RequestUnsupportedException('Unsupported method \'' . __METHOD__ . '\' for Request.');
     }
 
     public function withUploadedFiles(array $uploadedFiles)
     {
-        // TODO: Implement withUploadedFiles() method.
+        $req = clone $this;
+        $req->uploadedFiles = $uploadedFiles;
+        return $req;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getParsedBody()
     {
         return $this->parsedBody ?: $this->request->post();
     }
 
+    /**
+     * @inheritDoc
+     */
     public function withParsedBody($data)
     {
         $req = clone $this;
@@ -204,24 +262,44 @@ class Request implements ServerRequestInterface
         return $req;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getAttributes()
     {
-        return [];
+        return $this->attributes;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getAttribute($name, $default = null)
     {
-        return $default;
+        return array_key_exists($name, $this->attributes) ? $this->attributes[$name] : $default;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function withAttribute($name, $value)
     {
-        throw new RequestUnsupportedException('Unsupported method \''.__METHOD__.'\' for Request.');
+        $req = clone $this;
+        $req->attributes[$name] = $value;
+        return $req;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function withoutAttribute($name)
     {
-        throw new RequestUnsupportedException('Unsupported method \''.__METHOD__.'\' for Request.');
+        if (!array_key_exists($name, $this->attributes)) {
+            return $this;
+        }
+
+        $req = clone $this;
+        unset($req->attributes[$name]);
+        return $req;
     }
 
 }

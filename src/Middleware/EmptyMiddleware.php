@@ -2,19 +2,14 @@
 
 namespace Wind\Web\Middleware;
 
-use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\RequestHandlerInterface;
+use Wind\Web\MiddlewareInterface;
 
-class EmptyMiddleware implements \Psr\Http\Server\MiddlewareInterface
+class EmptyMiddleware implements MiddlewareInterface
 {
 
-    /**
-     * @inheritDoc
-     */
-    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
-    {
-        // TODO: Implement process() method.
+    public function process(ServerRequestInterface $request, callable $handler) {
+        //
     }
 
 }
