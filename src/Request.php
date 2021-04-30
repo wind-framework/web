@@ -2,7 +2,6 @@
 
 namespace Wind\Web;
 
-use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UriInterface;
 use Workerman\Connection\TcpConnection;
@@ -11,7 +10,7 @@ use Workerman\Connection\TcpConnection;
  * Wind Request Adapter with Workerman Request
  * @package Wind\Web
  */
-class Request implements ServerRequestInterface
+class Request implements RequestInterface
 {
 
     /**
@@ -45,6 +44,14 @@ class Request implements ServerRequestInterface
     {
         $this->request = $request;
     }
+
+    public function get($key, $defaultValue = null) { }
+
+    public function post($key, $defaultValue = null) { }
+
+    public function cookie($key, $defaultValue = null) { }
+
+    public function file($key) { }
 
     public function getProtocolVersion()
     {
