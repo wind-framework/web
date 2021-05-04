@@ -41,24 +41,17 @@ class HttpServer extends Worker
     public function __construct($socket_name = '', array $context_option = array())
     {
         parent::__construct($socket_name, $context_option);
+
         $this->onWorkerStart = [$this, 'onWorkerStart'];
         $this->onMessage = [$this, 'onMessage'];
         $this->app = Application::getInstance();
-    }
-
-    /**
-     * @param Worker $worker
-     */
-    public function onWorkerStart($worker)
-    {
-        $this->app->startComponents($worker);
 
         //初始化路由
-	    $route = $this->app->config->get('route');
+        $route = $this->app->config->get('route');
         $this->dispatcher = \FastRoute\simpleDispatcher($route);
 
         //初始化依赖注入 callable Invoker
-        //此 Invoker 主要加入了 TypeHintResolver，可以调用方法是根据类型注入临时的 Request
+        //此 Invoker 主要加入了 TypeHintResolver，可在调用时根据类型注入临时的 Request 等
         //否则直接使用 $this->container->call()
         $parameterResolver = new ResolverChain(array(
             new AssociativeArrayResolver,
@@ -68,6 +61,14 @@ class HttpServer extends Worker
         ));
 
         $this->invoker = new Invoker($parameterResolver, $this->app->container);
+    }
+
+    /**
+     * @param Worker $worker
+     */
+    public function onWorkerStart($worker)
+    {
+        $this->app->startComponents($worker);
     }
 
     /**
