@@ -43,15 +43,24 @@ class Request implements RequestInterface
     public function __construct(\Workerman\Protocols\Http\Request $request, TcpConnection $connection)
     {
         $this->request = $request;
+        $this->connection = $connection;
     }
 
-    public function get($key, $defaultValue = null) { }
+    public function get($key, $defaultValue = null) {
+        return $this->request->get($key, $defaultValue);
+    }
 
-    public function post($key, $defaultValue = null) { }
+    public function post($key, $defaultValue = null) {
+        return $this->request->post($key, $defaultValue);
+    }
 
-    public function cookie($key, $defaultValue = null) { }
+    public function cookie($key, $defaultValue = null) {
+        return $this->request->cookie($key, $defaultValue);
+    }
 
-    public function file($key) { }
+    public function file($key) {
+        return $this->request->file($key);
+    }
 
     public function getProtocolVersion()
     {
@@ -105,7 +114,7 @@ class Request implements RequestInterface
      */
     public function getHeaderLine($name)
     {
-        $headers = $this->getHeaders($name);
+        $headers = $this->getHeader($name);
         return join(',', $headers);
     }
 

@@ -9,7 +9,7 @@ class EmptyMiddleware implements MiddlewareInterface
 {
 
     public function process(ServerRequestInterface $request, callable $handler) {
-        //
+        return $handler($request);
     }
 
 }

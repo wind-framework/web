@@ -14,6 +14,7 @@ use Wind\Base\Application;
 use Wind\Base\Event\SystemError;
 use Wind\Base\Exception\CallableException;
 use Wind\Base\Exception\ExitException;
+use Wind\Web\Request as PsrRequest;
 use Workerman\Connection\TcpConnection;
 use Workerman\Protocols\Http\Request;
 use Workerman\Protocols\Http\Response;
@@ -36,7 +37,14 @@ class HttpServer extends Worker
     /**
      * @var Invoker
      */
-    private $invoker;
+    public $invoker;
+
+    /**
+     * Middlewares
+     *
+     * @var MiddlewareInterface[]
+     */
+    public $middlewares = [];
 
     public function __construct($socket_name = '', array $context_option = array())
     {
@@ -61,6 +69,15 @@ class HttpServer extends Worker
         ));
 
         $this->invoker = new Invoker($parameterResolver, $this->app->container);
+
+        //Middlewares
+        $middlewares = $this->app->config->get('middlewares');
+
+        if ($middlewares) {
+            foreach ($middlewares as $middleware) {
+                $this->middlewares[] = $this->app->container->make($middleware);
+            }
+        }
     }
 
     /**
@@ -89,16 +106,12 @@ class HttpServer extends Worker
                     return;
                 }
 
-                call(function() use ($callable, $connection, $request, $vars) {
-                    $vars[Request::class] = $request;
+                $vars[Request::class] = $request;
+                $vars[RequestInterface::class] = new PsrRequest($request, $connection);
 
-                    //init() 在此处处理协程的返回状态，所以 init 中可以使用协程，需要在控制器初始化时使用协程请在 init 中使用
-                    if (is_array($callable) && is_object($callable[0]) && method_exists($callable[0], 'init')) {
-                        yield wireCall([$callable[0], 'init'], $vars, $this->invoker);
-                    }
+                $action = new Action($callable, $vars, $this);
 
-                    return yield wireCall($callable, $vars, $this->invoker);
-                })->onResolve(function($e, $response) use ($connection) {
+                call($action, $vars[RequestInterface::class])->onResolve(function($e, $response) use ($connection) {
                     if ($e === null) {
                         $connection->send($response);
                         return;
@@ -145,5 +158,4 @@ class HttpServer extends Worker
             .'<p>in '.$e->getFile().':'.$e->getLine().'</p>'
             .'<b>Stack trace:</b><pre>'.$e->getTraceAsString().'</pre>'));
     }
-
 }
