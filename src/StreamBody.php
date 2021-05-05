@@ -4,7 +4,7 @@ namespace Wind\Web;
 
 use Psr\Http\Message\StreamInterface;
 
-class RequestBody implements StreamInterface
+class StreamBody implements StreamInterface
 {
 
     /**

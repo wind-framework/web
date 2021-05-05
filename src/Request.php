@@ -160,7 +160,7 @@ class Request implements RequestInterface
     public function getBody()
     {
         if ($this->body === null) {
-            $this->body = new RequestBody($this->request->rawBody());
+            $this->body = new StreamBody($this->request->rawBody());
         }
         return $this->body;
     }

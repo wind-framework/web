@@ -5,6 +5,8 @@ namespace Wind\Web;
 abstract class Controller
 {
 
+    protected $middlewares = [];
+
     /**
      * @return void|\Amp\Promise|\Generator
      */

@@ -48,7 +48,7 @@ class HttpServer extends Worker
 
     public function __construct($socket_name = '', array $context_option = array())
     {
-        parent::__construct($socket_name, $context_option);
+        parent::__construct('http://'.$socket_name, $context_option);
 
         $this->onWorkerStart = [$this, 'onWorkerStart'];
         $this->onMessage = [$this, 'onMessage'];

@@ -15,7 +15,7 @@ interface MiddlewareInterface
      * If unable to produce the response itself, it may delegate to the provided
      * request handler to do so.
      * 
-     * @return \Amp\Promise|string|Response
+     * @return \Amp\Promise<Response>|Response
      */
     public function process(ServerRequestInterface $request, callable $handler);
 
