@@ -10,14 +10,14 @@ use Invoker\ParameterResolver\DefaultValueResolver;
 use Invoker\ParameterResolver\ResolverChain;
 use Invoker\ParameterResolver\TypeHintResolver;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Psr\Http\Message\ResponseInterface;
 use Wind\Base\Application;
 use Wind\Base\Event\SystemError;
 use Wind\Base\Exception\CallableException;
 use Wind\Base\Exception\ExitException;
-use Wind\Web\Request as PsrRequest;
 use Workerman\Connection\TcpConnection;
-use Workerman\Protocols\Http\Request;
-use Workerman\Protocols\Http\Response;
+use Workerman\Protocols\Http\Request as WorkermanRequest;
+use Workerman\Protocols\Http\Response as WorkermanResponse;
 use Workerman\Worker;
 use function Amp\call;
 
@@ -90,7 +90,7 @@ class HttpServer extends Worker
 
     /**
      * @param TcpConnection $connection
-     * @param Request $request
+     * @param WorkermanRequest $request
      */
     public function onMessage($connection, $request)
     {
@@ -106,18 +106,28 @@ class HttpServer extends Worker
                     return;
                 }
 
-                $vars[Request::class] = $request;
-                $vars[RequestInterface::class] = new PsrRequest($request, $connection);
+                $vars[WorkermanRequest::class] = $request;
+                $vars[RequestInterface::class] = new Request($request, $connection);
 
                 $action = new Action($callable, $vars, $this);
 
                 call($action, $vars[RequestInterface::class])->onResolve(function($e, $response) use ($connection) {
                     if ($e === null) {
-                        $connection->send($response);
-                        return;
-                    }
+                        if ($response instanceof ResponseInterface) {
+                            $body = $response->getBody();
+                            $contents = $body->__toString();
+                            $body->close();
 
-                    if ($e instanceof ExitException) {
+                            $response = new WorkermanResponse(
+                                $response->getStatusCode(),
+                                $response->getHeaders(),
+                                $contents
+                            );
+                        }
+
+                        $connection->send($response);
+
+                    } elseif ($e instanceof ExitException) {
                         $connection->send('');
                     } else {
                         $eventDispatcher = $this->app->container->get(EventDispatcherInterface::class);
@@ -129,7 +139,6 @@ class HttpServer extends Worker
                             throw $e;
                         }
                     }
-
                 });
                 break;
             case Dispatcher::NOT_FOUND:
@@ -137,7 +146,7 @@ class HttpServer extends Worker
                 break;
             case Dispatcher::METHOD_NOT_ALLOWED:
                 //$allowedMethods = $routeInfo[1];
-                $connection->send(new Response(405, [], 'Method Not Allowed'));
+                $connection->send(new WorkermanResponse(405, [], 'Method Not Allowed'));
                 break;
         }
     }
@@ -146,7 +155,7 @@ class HttpServer extends Worker
 	 * @param TcpConnection $connection
 	 */
     public function sendPageNotFound($connection) {
-	    $connection->send(new Response(404, [], "<h1>404 Not Found</h1><p>The page you looking for is not found.</p>"));
+	    $connection->send(new WorkermanResponse(404, [], "<h1>404 Not Found</h1><p>The page you looking for is not found.</p>"));
     }
 
     /**
@@ -154,7 +163,7 @@ class HttpServer extends Worker
      * @param \Throwable $e
      */
     public function sendServerError($connection, $e) {
-        $connection->send(new Response(500, [], '<h1>'.get_class($e).': '.$e->getMessage().'</h1>'
+        $connection->send(new WorkermanResponse(500, [], '<h1>'.get_class($e).': '.$e->getMessage().'</h1>'
             .'<p>in '.$e->getFile().':'.$e->getLine().'</p>'
             .'<b>Stack trace:</b><pre>'.$e->getTraceAsString().'</pre>'));
     }

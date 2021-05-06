@@ -2,8 +2,8 @@
 
 namespace Wind\Web;
 
-use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UriInterface;
+use Wind\Web\Common\MessageTrait;
 use Workerman\Connection\TcpConnection;
 
 /**
@@ -12,6 +12,8 @@ use Workerman\Connection\TcpConnection;
  */
 class Request implements RequestInterface
 {
+
+    use MessageTrait;
 
     /**
      * Workerman origin Request instance
@@ -28,14 +30,11 @@ class Request implements RequestInterface
     protected $connection;
 
     protected $requestTarget;
-    protected $protocolVersion;
-    protected $headers;
     protected $host;
     protected $method;
     protected $uri;
     protected $cookies;
     protected $queryParams;
-    protected $body;
     protected $parsedBody;
     protected $uploadedFiles;
     protected $attributes = [];
@@ -67,13 +66,6 @@ class Request implements RequestInterface
         return $this->protocolVersion ?: $this->request->protocolVersion();
     }
 
-    public function withProtocolVersion($version)
-    {
-        $req = clone $this;
-        $req->protocolVersion = $version;
-        return $req;
-    }
-
     /**
      * @inheritDoc
      */
@@ -89,90 +81,12 @@ class Request implements RequestInterface
     /**
      * @inheritDoc
      */
-    public function hasHeader($name)
-    {
-        $headers = $this->getHeaders();
-        return isset($headers[$name]);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getHeader($name)
-    {
-        $headers = $this->getHeaders();
-
-        if (isset($headers[$name])) {
-            return is_array($headers[$name]) ? $headers[$name] : [$headers[$name]];
-        }
-
-        return [];
-    }
-    
-    /**
-     * @inheritDoc
-     */
-    public function getHeaderLine($name)
-    {
-        $headers = $this->getHeader($name);
-        return join(',', $headers);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function withHeader($name, $value)
-    {
-        $req = clone $this;
-        $ls = $req->getHeader($name);
-        $ls[] = $value;
-        $req->headers[$name] = $ls;
-        return $req;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function withAddedHeader($name, $value)
-    {
-        $req = clone $this;
-        $req->getHeaders();
-        $req->headers[$name] = $value;
-        return $req;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function withoutHeader($name)
-    {
-        if (!$this->hasHeader($name)) {
-            return $this;
-        }
-        $req = clone $this;
-        unset($req->headers[$name]);
-        return $req;
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function getBody()
     {
         if ($this->body === null) {
             $this->body = StreamBody::create($this->request->rawBody());
         }
         return $this->body;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function withBody(StreamInterface $body)
-    {
-        $req = clone $this;
-        $req->body = $body;
-        return $req;
     }
 
     /**

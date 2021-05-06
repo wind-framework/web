@@ -3,7 +3,8 @@
 namespace Wind\Web;
 
 use Psr\Http\Message\ServerRequestInterface;
-use Workerman\Protocols\Http\Response;
+use Workerman\Protocols\Http\Response as WorkermanResponse;
+
 use function Amp\call;
 
 class Action implements MiddlewareInterface
@@ -52,18 +53,19 @@ class Action implements MiddlewareInterface
 
         $content = yield wireCall($this->action, $this->vars, $this->httpServer->invoker);
 
-        if ($content instanceof Response) {
+        if ($content instanceof Response || $content instanceof WorkermanResponse) {
             return $content;
         }
 
         //Default array to json response
         if (is_array($content) || is_object($content)) {
-            return new Response(200, [
+            $body = json_encode($content, config('server.json_options', 0));
+            return new Response(200, $body, [
                 'Content-Type' => 'application/json; charset=utf-8'
-            ], json_encode($content, config('server.json_options', 0)));
+            ]);
         }
 
-        return new Response(200, [], $content);
+        return new Response(200, $content);
     }
 
     public function __invoke(ServerRequestInterface $request)

@@ -4,7 +4,8 @@ namespace Wind\Web\Middleware;
 
 use Psr\Http\Message\ServerRequestInterface;
 use Wind\Web\Exception\HttpException;
-use Workerman\Protocols\Http\Response;
+use Wind\Web\Response;
+use Wind\Web\StreamBody;
 
 /**
  * JsonMiddleware
@@ -29,10 +30,11 @@ class JsonMiddleware implements \Wind\Web\MiddlewareInterface
              */
             $response = yield $handler($request);
 
-            $contentType = $response->getHeader('Content-Type');
+            $contentType = $response->getHeaderLine('Content-Type');
 
             if (!$contentType || !str_contains($contentType, 'json')) {
-                return $response->withBody(json_encode($response->rawBody(), $jsonOptions))
+                $body = StreamBody::create(json_encode($response->getBody()->getContents(), $jsonOptions));
+                return $response->withBody($body)
                     ->withHeader('content-type', 'application/json; charset=utf-8');
             } else {
                 return $response;
@@ -52,9 +54,9 @@ class JsonMiddleware implements \Wind\Web\MiddlewareInterface
                 $content['trace'] = $e->getTrace();
             }
 
-            return new Response($status, [
+            return new Response($status, json_encode($content, $jsonOptions), [
                 'content-type' => 'application/json; charset=utf-8'
-            ], json_encode($content, $jsonOptions));
+            ]);
         }
     }
 
