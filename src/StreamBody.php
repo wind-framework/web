@@ -15,7 +15,7 @@ use Psr\Http\Message\StreamInterface;
  *
  * @final This class should never be extended. See https://github.com/Nyholm/psr7/blob/master/doc/final.md
  */
-class StreamBody implements StreamInterface
+final class StreamBody implements StreamInterface
 {
 
     /** @var resource|null A resource reference */
@@ -118,7 +118,7 @@ class StreamBody implements StreamInterface
             }
             \restore_error_handler();
 
-            if ($e instanceof \Error || $errorHandler instanceof SymfonyErrorHandler || $errorHandler instanceof SymfonyLegacyErrorHandler) {
+            if ($e instanceof \Error) {
                 return \trigger_error((string) $e, \E_USER_ERROR);
             }
 
