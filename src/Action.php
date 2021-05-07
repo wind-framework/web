@@ -9,18 +9,26 @@ use function Amp\call;
 class Action implements MiddlewareInterface
 {
 
+    /**
+     * @var callable
+     */
     public $action;
 
     /**
+     * Action Parameters
+     *
      * @var array
      */
     public $vars;
 
     /**
-     * @var HttpServer
+     * @var callable
      */
-    private $httpServer;
+    private $invoker;
 
+    /**
+     * @var MiddlewareInterface[]
+     */
     private $middlewares = [];
 
     /**
@@ -38,7 +46,8 @@ class Action implements MiddlewareInterface
     {
         $this->action = $action;
         $this->vars = $vars;
-        $this->httpServer = $httpServer;
+
+        $this->invoker = [$httpServer->invoker, 'call'];
 
         $this->middlewares = $httpServer->middlewares;
         $this->middlewares[]  = $this; //<- cycles reference
@@ -53,10 +62,10 @@ class Action implements MiddlewareInterface
 
         //init() 在此处处理协程的返回状态，所以 init 中可以使用协程，需要在控制器初始化时使用协程请在 init 中使用
         if ($this->isController) {
-            yield wireCall([$this->action[0], 'init'], $this->vars, $this->httpServer->invoker);
+            yield call($this->invoker, [$this->action[0], 'init'], $this->vars);
         }
 
-        $content = yield wireCall($this->action, $this->vars, $this->httpServer->invoker);
+        $content = yield call($this->invoker, $this->action, $this->vars);
 
         if ($content instanceof Response || $content instanceof WorkermanResponse) {
             return $content;
