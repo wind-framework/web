@@ -62,6 +62,20 @@ class Request implements RequestInterface
         return $this->request->file($key);
     }
 
+    public function getClientIp()
+    {
+        if ($this->hasHeader('client-ip')) {
+            $ip = $this->getHeaderLine('client-ip');
+        } elseif ($this->hasHeader('X-Forwarded-For')) {
+            $ip = $this->getHeaderLine('X-Forwarded-For');
+        } else {
+            $ip = $this->connection->getRemoteIp();
+        }
+
+        preg_match('/[\d\.]{7,15}/', $ip, $ips);
+        return !empty($ips[0]) ? $ips[0] : '';
+    }
+
     public function getProtocolVersion()
     {
         return $this->protocolVersion ?: $this->request->protocolVersion();

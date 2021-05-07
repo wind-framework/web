@@ -29,4 +29,11 @@ interface RequestInterface extends ServerRequestInterface
      */
     public function getUploadedFile($name);
 
+    /**
+     * Get request client ip address
+     *
+     * @return string
+     */
+    public function getClientIp();
+
 }

@@ -2,8 +2,7 @@
 
 namespace Wind\Web;
 
-use Psr\Http\Message\ServerRequestInterface;
-use Workerman\Protocols\Http\Response;
+use Psr\Http\Message\ResponseInterface;
 
 interface MiddlewareInterface
 {
@@ -15,8 +14,8 @@ interface MiddlewareInterface
      * If unable to produce the response itself, it may delegate to the provided
      * request handler to do so.
      * 
-     * @return \Amp\Promise<Response>|Response
+     * @return \Amp\Promise<ResponseInterface>|ResponseInterface
      */
-    public function process(ServerRequestInterface $request, callable $handler);
+    public function process(RequestInterface $request, callable $handler);
 
 }

@@ -2,13 +2,13 @@
 
 namespace Wind\Web\Middleware;
 
-use Psr\Http\Message\ServerRequestInterface;
 use Wind\Web\MiddlewareInterface;
+use Wind\Web\RequestInterface;
 
 class EmptyMiddleware implements MiddlewareInterface
 {
 
-    public function process(ServerRequestInterface $request, callable $handler) {
+    public function process(RequestInterface $request, callable $handler) {
         return $handler($request);
     }
 

@@ -2,7 +2,6 @@
 
 namespace Wind\Web;
 
-use Psr\Http\Message\ServerRequestInterface;
 use Workerman\Protocols\Http\Response as WorkermanResponse;
 
 use function Amp\call;
@@ -44,7 +43,7 @@ class Action implements MiddlewareInterface
         $this->isController = (is_array($this->action) && is_object($this->action[0]) && $this->action[0] instanceof Controller);
     }
 
-    public function process(ServerRequestInterface $request, callable $handler)
+    public function process(RequestInterface $request, callable $handler)
     {
         //init() 在此处处理协程的返回状态，所以 init 中可以使用协程，需要在控制器初始化时使用协程请在 init 中使用
         if ($this->isController) {
@@ -68,7 +67,7 @@ class Action implements MiddlewareInterface
         return new Response(200, $content);
     }
 
-    public function __invoke(ServerRequestInterface $request)
+    public function __invoke(RequestInterface $request)
     {
         $middleware = current($this->middlewares);
         next($this->middlewares);
