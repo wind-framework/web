@@ -84,7 +84,7 @@ class Response implements \Psr\Http\Message\ResponseInterface
      * @param string|StreamBody $body
      * @param array $headers
      */
-    public function __construct($statusCode, $body, $headers=[])
+    public function __construct($statusCode=200, $body='', $headers=[])
     {
         $this->statusCode = $statusCode;
 
@@ -93,7 +93,7 @@ class Response implements \Psr\Http\Message\ResponseInterface
         }
 
         if ($headers) {
-            $this->headers = $headers;
+            $this->initHeaders($headers);
         }
 
         if ($body instanceof StreamInterface) {
@@ -111,14 +111,6 @@ class Response implements \Psr\Http\Message\ResponseInterface
     public function getProtocolVersion()
     {
         return $this->protocolVersion;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getHeaders()
-    {
-        return $this->headers;
     }
 
     /**

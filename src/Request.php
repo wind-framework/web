@@ -43,6 +43,7 @@ class Request implements RequestInterface
     {
         $this->request = $request;
         $this->connection = $connection;
+        $this->initHeaders($request->header());
     }
 
     public function get($key, $defaultValue = null) {
@@ -64,18 +65,6 @@ class Request implements RequestInterface
     public function getProtocolVersion()
     {
         return $this->protocolVersion ?: $this->request->protocolVersion();
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getHeaders()
-    {
-        if ($this->headers === null) {
-            $this->headers = $this->request->header();
-        }
-
-        return $this->headers;
     }
 
     /**
