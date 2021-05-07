@@ -114,15 +114,21 @@ class HttpServer extends Worker
                 call($action, $vars[RequestInterface::class])->onResolve(function($e, $response) use ($connection) {
                     if ($e === null) {
                         if ($response instanceof ResponseInterface) {
-                            $body = $response->getBody();
-                            $contents = $body->__toString();
-                            $body->close();
+                            //X-Workerman-Sendfile supported.
+                            if ($response->hasHeader('X-Workerman-Sendfile')) {
+                                $sendFile = $response->getHeaderLine('X-Workerman-Sendfile');
+                                $response = (new WorkermanResponse())->withFile($sendFile);
+                            } else {
+                                $body = $response->getBody();
+                                $contents = $body->__toString();
+                                $body->close();
 
-                            $response = new WorkermanResponse(
-                                $response->getStatusCode(),
-                                $response->getHeaders(),
-                                $contents
-                            );
+                                $response = new WorkermanResponse(
+                                    $response->getStatusCode(),
+                                    $response->getHeaders(),
+                                    $contents
+                                );
+                            }
                         }
 
                         $connection->send($response);
