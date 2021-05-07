@@ -39,12 +39,18 @@ class Action implements MiddlewareInterface
         $this->action = $action;
         $this->vars = $vars;
         $this->httpServer = $httpServer;
-        $this->middlewares = array_merge($httpServer->middlewares, [$this]);
+
+        $this->middlewares = $httpServer->middlewares;
+        $this->middlewares[]  = $this; //<- cycles reference
+
         $this->isController = (is_array($this->action) && is_object($this->action[0]) && $this->action[0] instanceof Controller);
     }
 
     public function process(RequestInterface $request, callable $handler)
     {
+        //free cycles reference. 
+        $this->middlewares = null;
+
         //init() 在此处处理协程的返回状态，所以 init 中可以使用协程，需要在控制器初始化时使用协程请在 init 中使用
         if ($this->isController) {
             yield wireCall([$this->action[0], 'init'], $this->vars, $this->httpServer->invoker);
