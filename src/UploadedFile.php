@@ -14,21 +14,48 @@ class UploadedFile implements UploadedFileInterface
      */
     protected $file;
 
+    /**
+     *  @var bool
+     */
+    private $moved = false;
+
     public function __construct(array $file)
     {
         $this->file = $file;
     }
 
-    public function getStream() {
-        //Todo: implement
-    }
-
-    public function moveTo($targetPath) {
-        if ($this->getError() != UPLOAD_ERR_OK) {
-            throw new \RuntimeException('Can not moveTo because upload is error.');
+    /**
+     * @throws \RuntimeException if is moved or not ok
+     */
+    private function validateActive(): void
+    {
+        if (\UPLOAD_ERR_OK !== $this->getError()) {
+            throw new \RuntimeException('Cannot retrieve stream due to upload error');
         }
 
-        //Todo: implement
+        if ($this->moved) {
+            throw new \RuntimeException('Cannot retrieve stream after it has already been moved');
+        }
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getStream() {
+        $this->validateActive();
+        $resource = \fopen($this->file['tmp_name'], 'r');
+        return Stream::create($resource);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function moveTo($targetPath) {
+        $this->validateActive();
+        $this->moved = \rename($this->file['tmp_name'], $targetPath);
+        if (false === $this->moved) {
+            throw new \RuntimeException(\sprintf('Uploaded file could not be moved to %s', $targetPath));
+        }
     }
 
     public function getSize() {

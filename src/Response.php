@@ -81,7 +81,7 @@ class Response implements \Psr\Http\Message\ResponseInterface
 
     /**
      * @param int $statusCode
-     * @param string|StreamBody $body
+     * @param string|Stream $body
      * @param array $headers
      */
     public function __construct($statusCode=200, $body='', $headers=[])
@@ -99,7 +99,7 @@ class Response implements \Psr\Http\Message\ResponseInterface
         if ($body instanceof StreamInterface) {
             $this->body = $body;
         } else {
-            $this->body = StreamBody::create($body);
+            $this->body = Stream::create($body);
         }
 
         $this->protocolVersion = '1.1';

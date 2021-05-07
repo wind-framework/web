@@ -21,4 +21,12 @@ interface RequestInterface extends ServerRequestInterface
      */
     public function file($key);
 
+    /**
+     * Get an uploaded file
+     *
+     * @param string $name
+     * @return UploadedFile|null
+     */
+    public function getUploadedFile($name);
+
 }

@@ -15,7 +15,7 @@ use Psr\Http\Message\StreamInterface;
  *
  * @final This class should never be extended. See https://github.com/Nyholm/psr7/blob/master/doc/final.md
  */
-final class StreamBody implements StreamInterface
+final class Stream implements StreamInterface
 {
 
     /** @var resource|null A resource reference */

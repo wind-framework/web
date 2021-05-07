@@ -117,7 +117,8 @@ class HttpServer extends Worker
                             //X-Workerman-Sendfile supported.
                             if ($response->hasHeader('X-Workerman-Sendfile')) {
                                 $sendFile = $response->getHeaderLine('X-Workerman-Sendfile');
-                                $response = (new WorkermanResponse())->withFile($sendFile);
+                                $headers = $response->withoutHeader('X-Workerman-Sendfile')->getHeaders();
+                                $response = (new WorkermanResponse(200, $headers))->withFile($sendFile);
                             } else {
                                 $body = $response->getBody();
                                 $contents = $body->__toString();

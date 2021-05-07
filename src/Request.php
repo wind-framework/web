@@ -73,7 +73,7 @@ class Request implements RequestInterface
     public function getBody()
     {
         if ($this->body === null) {
-            $this->body = StreamBody::create($this->request->rawBody());
+            $this->body = Stream::create($this->request->rawBody());
         }
         return $this->body;
     }
@@ -203,7 +203,7 @@ class Request implements RequestInterface
         if ($files) {
             foreach ($files as $name => $file) {
                 $uploadFile = new UploadedFile($file);
-                $uploadedFiles[] = $uploadFile;
+                $uploadedFiles[$name] = $uploadFile;
             }
         }
 
@@ -211,10 +211,7 @@ class Request implements RequestInterface
     }
 
     /**
-     * Get an uploaded file
-     *
-     * @param string $name
-     * @return UploadedFile|null
+     * @inheritDoc
      */
     public function getUploadedFile($name)
     {
