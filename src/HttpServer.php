@@ -25,9 +25,9 @@ class HttpServer extends Worker
 {
 
     /**
-     * @var Dispatcher
+     * @var Router
      */
-    private $dispatcher;
+    private $router;
 
     /**
      * @var Application
@@ -54,10 +54,6 @@ class HttpServer extends Worker
         $this->onMessage = [$this, 'onMessage'];
         $this->app = Application::getInstance();
 
-        //初始化路由
-        $route = $this->app->config->get('route');
-        $this->dispatcher = \FastRoute\simpleDispatcher($route);
-
         //初始化依赖注入 callable Invoker
         //此 Invoker 主要加入了 TypeHintResolver，可在调用时根据类型注入临时的 Request 等
         //否则直接使用 $this->container->call()
@@ -69,6 +65,9 @@ class HttpServer extends Worker
         ));
 
         $this->invoker = new Invoker($parameterResolver, $this->app->container);
+
+        //Router
+        $this->router = new Router;
 
         //Middlewares
         $middlewares = $this->app->config->get('middlewares');
@@ -86,6 +85,7 @@ class HttpServer extends Worker
     public function onWorkerStart($worker)
     {
         $this->app->startComponents($worker);
+        $this->app->container->set(Router::class, $this->router);
     }
 
     /**
@@ -94,13 +94,13 @@ class HttpServer extends Worker
      */
     public function onMessage($connection, $request)
     {
-        $routeInfo = $this->dispatcher->dispatch($request->method(), $request->path());
+        $routeInfo = $this->router->dispatch($request->method(), $request->path());
 
         switch ($routeInfo[0]) {
             case Dispatcher::FOUND:
-                list(, $handler, $vars) = $routeInfo;
+                list(, $target, $vars) = $routeInfo;
                 try {
-                    $callable = wrapCallable($handler, false);
+                    $callable = wrapCallable($target['handler'], false);
                 } catch (CallableException $e) {
                     $this->sendServerError($connection, $e);
                     return;
@@ -109,7 +109,7 @@ class HttpServer extends Worker
                 $vars[WorkermanRequest::class] = $request;
                 $vars[RequestInterface::class] = new Request($request, $connection);
 
-                $action = new Action($callable, $vars, $this);
+                $action = new Action($callable, $vars, $this->invoker, $this->middlewares, $target['middlewares'] ?? []);
 
                 call($action, $vars[RequestInterface::class])->onResolve(function($e, $response) use ($connection) {
                     if ($e === null) {

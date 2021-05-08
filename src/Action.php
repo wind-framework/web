@@ -38,18 +38,27 @@ class Action implements MiddlewareInterface
 
     /**
      * Action constructor.
+     *
      * @param $action
      * @param $vars
-     * @param HttpServer $httpServer
+     * @param \Invoker\Invoker $invoker
+     * @param MiddlewareInterface[] $globalMiddlewares Global middleware instances
+     * @param array $actionMiddlewares Action middleware classes
      */
-    public function __construct($action, $vars, $httpServer)
+    public function __construct($action, $vars, $invoker, $globalMiddlewares, $actionMiddlewares)
     {
         $this->action = $action;
         $this->vars = $vars;
+        $this->invoker = [$invoker, 'call'];
+        $this->middlewares = $globalMiddlewares;
 
-        $this->invoker = [$httpServer->invoker, 'call'];
+        //Action middlewares is temporary
+        if ($actionMiddlewares) {
+            foreach ($actionMiddlewares as $middleware) {
+                $this->middlewares[] = di()->make($middleware);
+            }
+        }
 
-        $this->middlewares = $httpServer->middlewares;
         $this->middlewares[]  = $this; //<- cycles reference
 
         $this->isController = (is_array($this->action) && is_object($this->action[0]) && $this->action[0] instanceof Controller);
