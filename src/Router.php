@@ -60,17 +60,13 @@ class Router
         //Prefix
         if (!empty($group['prefix'])) {
             if (!empty($options['prefix'])) {
-                $options['prefix'] = rtrim($options['prefix'], '/').'/'.ltrim($group['prefix'], '/');
+                $options['prefix'] = $this->joinPath($options['prefix'], $group['prefix']);
             } else {
                 $options['prefix'] = $group['prefix'];
             }
         }
 
         //Middlewares
-        if (!empty($group['middleware'])) {
-            $options['middlewares'][] = $group['middleware'];
-        }
-
         if (!empty($group['middlewares'])) {
             $options['middlewares'] = isset($options['middlewares']) ?
                 array_merge($options['middlewares'], $group['middlewares']) : $group['middlewares'];
@@ -95,23 +91,18 @@ class Router
             }
 
             if (isset($options['prefix'])) {
-                $path = rtrim($options['prefix'], '/').'/'.ltrim($path, '/');
+                $path = $this->joinPath($options['prefix'], $path);
             }
 
             if (is_string($target) || $target instanceof \Closure) {
                 $target = [
-                    'handler' => $target,
-                    'middlewares' => []
+                    'handler' => $target
                 ];
             }
 
-            if (isset($target['middleware'])) {
-                $target['middlewares'][] = $target['middleware'];
-                unset($target['middleware']);
-            }
-
             if (isset($options['middlewares'])) {
-                $handler['middlewares'] = array_merge($options['middlewares'], $target['middlewares']);
+                $target['middlewares'] = isset($target['middlewares']) ?
+                    array_merge($options['middlewares'], $target['middlewares']) : $options['middlewares'];
             }
 
             if (isset($options['namespace']) && is_string($target['handler']) && str_contains($target['handler'], '::')) {
@@ -120,6 +111,11 @@ class Router
 
             $this->collector->addRoute($methods, $path, $target);
         }
+    }
+
+    private function joinPath($prefix, $path)
+    {
+        return rtrim($prefix, '/').'/'.ltrim($path, '/');
     }
 
 }

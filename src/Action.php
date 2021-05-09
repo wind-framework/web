@@ -39,8 +39,8 @@ class Action implements MiddlewareInterface
     /**
      * Action constructor.
      *
-     * @param $action
-     * @param $vars
+     * @param callable $action
+     * @param array $vars
      * @param \Invoker\Invoker $invoker
      * @param MiddlewareInterface[] $globalMiddlewares Global middleware instances
      * @param array $actionMiddlewares Action middleware classes
