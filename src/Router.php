@@ -23,7 +23,7 @@ class Router
     {
         $this->dispatcher = \FastRoute\simpleDispatcher(function(RouteCollector $r) {
             $this->collector = $r;
-            $groups = \config('route', []);
+            $groups = \config('routes', []);
             $this->addGroups($groups);
             $this->collector = null;
         });
