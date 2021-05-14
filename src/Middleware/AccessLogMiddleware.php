@@ -16,7 +16,18 @@ class AccessLogMiddleware implements MiddlewareInterface
 
     public function __construct(LogFactory $logFactory)
     {
-        $this->logger = $logFactory->get('access');
+        $this->logger = $this->getLogger($logFactory);
+    }
+
+    /**
+     * Customize logger
+     *
+     * @param LogFactory $logFactory
+     * @return \Psr\Log\LoggerInterface
+     */
+    protected function getLogger(LogFactory $logFactory)
+    {
+        return $logFactory->get('access');
     }
 
     public function process(RequestInterface $request, callable $handler) {
