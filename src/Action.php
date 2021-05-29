@@ -88,7 +88,7 @@ class Action implements MiddlewareInterface
             ]);
         }
 
-        return new Response(200, $content);
+        return new Response(200, (string)$content);
     }
 
     public function __invoke(RequestInterface $request)
