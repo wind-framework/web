@@ -2,22 +2,27 @@
 
 namespace Wind\Web;
 
+use Amp\Promise;
 use FastRoute\Dispatcher;
 use Invoker\Invoker;
-use Invoker\ParameterResolver\AssociativeArrayResolver;
-use Invoker\ParameterResolver\Container\TypeHintContainerResolver;
-use Invoker\ParameterResolver\DefaultValueResolver;
-use Invoker\ParameterResolver\ResolverChain;
-use Invoker\ParameterResolver\TypeHintResolver;
+use Invoker\ParameterResolver\{
+    AssociativeArrayResolver, 
+    Container\TypeHintContainerResolver, 
+    DefaultValueResolver, 
+    ResolverChain, 
+    TypeHintResolver
+};
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ResponseInterface;
-use Wind\Base\Application;
-use Wind\Base\Event\SystemError;
-use Wind\Base\Exception\CallableException;
-use Wind\Base\Exception\ExitException;
+use Wind\Base\{
+    Application,
+    Event\SystemError,
+    Exception\CallableException,
+    Exception\ExitException
+};
 use Workerman\Connection\TcpConnection;
-use Workerman\Protocols\Http\Request as WorkermanRequest;
-use Workerman\Protocols\Http\Response as WorkermanResponse;
+use Workerman\Protocols\Http\Request as RawRequest;
+use Workerman\Protocols\Http\Response as RawResponse;
 use Workerman\Worker;
 use function Amp\call;
 
@@ -90,7 +95,7 @@ class HttpServer extends Worker
 
     /**
      * @param TcpConnection $connection
-     * @param WorkermanRequest $request
+     * @param RawRequest $request
      */
     public function onMessage($connection, $request)
     {
@@ -106,7 +111,7 @@ class HttpServer extends Worker
                     return;
                 }
 
-                $vars[WorkermanRequest::class] = $request;
+                $vars[RawRequest::class] = $request;
                 $vars[RequestInterface::class] = new Request($request, $connection);
 
                 $action = new Action($callable, $vars, $this->invoker, $this->middlewares, $target['middlewares'] ?? []);
@@ -118,13 +123,13 @@ class HttpServer extends Worker
                             if ($response->hasHeader('X-Workerman-Sendfile')) {
                                 $sendFile = $response->getHeaderLine('X-Workerman-Sendfile');
                                 $headers = $response->withoutHeader('X-Workerman-Sendfile')->getHeaders();
-                                $response = (new WorkermanResponse(200, $headers))->withFile($sendFile);
+                                $response = (new RawResponse(200, $headers))->withFile($sendFile);
                             } else {
                                 $body = $response->getBody();
                                 $contents = $body->__toString();
                                 $body->close();
 
-                                $response = new WorkermanResponse(
+                                $response = new RawResponse(
                                     $response->getStatusCode(),
                                     $response->getHeaders(),
                                     $contents
@@ -140,9 +145,9 @@ class HttpServer extends Worker
                         $eventDispatcher = $this->app->container->get(EventDispatcherInterface::class);
                         if ($e instanceof \Exception) {
                             $this->sendServerError($connection, $e);
-                            $eventDispatcher->dispatch(new SystemError($e));
+                            yield $eventDispatcher->dispatch(new SystemError($e));
                         } else {
-                            $eventDispatcher->dispatch(new SystemError($e));
+                            yield $eventDispatcher->dispatch(new SystemError($e));
                             throw $e;
                         }
                     }
@@ -153,7 +158,7 @@ class HttpServer extends Worker
                 break;
             case Dispatcher::METHOD_NOT_ALLOWED:
                 //$allowedMethods = $routeInfo[1];
-                $connection->send(new WorkermanResponse(405, [], 'Method Not Allowed'));
+                $connection->send(new RawResponse(405, [], 'Method Not Allowed'));
                 break;
         }
     }
@@ -162,7 +167,7 @@ class HttpServer extends Worker
 	 * @param TcpConnection $connection
 	 */
     public function sendPageNotFound($connection) {
-	    $connection->send(new WorkermanResponse(404, [], "<h1>404 Not Found</h1><p>The page you looking for is not found.</p>"));
+	    $connection->send(new RawResponse(404, [], "<h1>404 Not Found</h1><p>The page you looking for is not found.</p>"));
     }
 
     /**
@@ -170,7 +175,7 @@ class HttpServer extends Worker
      * @param \Throwable $e
      */
     public function sendServerError($connection, $e) {
-        $connection->send(new WorkermanResponse(500, [], '<h1>'.get_class($e).': '.$e->getMessage().'</h1>'
+        $connection->send(new RawResponse(500, [], '<h1>'.get_class($e).': '.$e->getMessage().'</h1>'
             .'<p>in '.$e->getFile().':'.$e->getLine().'</p>'
             .'<b>Stack trace:</b><pre>'.$e->getTraceAsString().'</pre>'));
     }
