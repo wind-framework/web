@@ -2,14 +2,13 @@
 
 namespace Wind\Web;
 
-use Amp\Promise;
 use FastRoute\Dispatcher;
 use Invoker\Invoker;
 use Invoker\ParameterResolver\{
-    AssociativeArrayResolver, 
-    Container\TypeHintContainerResolver, 
-    DefaultValueResolver, 
-    ResolverChain, 
+    AssociativeArrayResolver,
+    Container\TypeHintContainerResolver,
+    DefaultValueResolver,
+    ResolverChain,
     TypeHintResolver
 };
 use Psr\EventDispatcher\EventDispatcherInterface;
@@ -28,6 +27,8 @@ use function Amp\call;
 
 class HttpServer extends Worker
 {
+
+    public $name = 'HttpServer';
 
     /**
      * @var Router
