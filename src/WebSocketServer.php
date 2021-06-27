@@ -49,7 +49,7 @@ class WebSocketServer extends Worker
         });;
 
         $this->onWorkerStart = [$this, 'onWorkerStart'];
-        $this->onConnect = [$this, 'onConnect'];
+        $this->onWebSocketConnect = [$this, 'onWebSocketConnect'];
         $this->app = Application::getInstance();
     }
 
@@ -61,13 +61,9 @@ class WebSocketServer extends Worker
         $this->app->startComponents($worker);
     }
 
-    public function onConnect($connection)
-    {
-        $connection->onWebSocketConnect = [$this, 'onWebSocketConnect'];
-    }
-
     /**
      * @param TcpConnection $connection
+     * @param string $headers
      */
     public function onWebSocketConnect($connection, $headers)
     {
