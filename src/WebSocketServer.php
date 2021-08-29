@@ -13,8 +13,7 @@ use Wind\Web\Exception\WebSocketException;
 use Workerman\Worker;
 use Workerman\Connection\TcpConnection;
 
-use function Amp\asyncCall;
-use function Amp\asyncCoroutine;
+use function Amp\asyncCallable;
 
 /**
  * WebSocket Server
@@ -49,7 +48,7 @@ class WebSocketServer extends Worker
         });;
 
         $this->onWorkerStart = [$this, 'onWorkerStart'];
-        $this->onWebSocketConnect = [$this, 'onWebSocketConnect'];
+        $this->onWebSocketConnect = asyncCallable([$this, 'onWebSocketConnect']);
         $this->app = Application::getInstance();
     }
 
@@ -78,9 +77,9 @@ class WebSocketServer extends Worker
                  * @var WebsocketInterface $controller
                  */
                 $controller = $this->app->container->get($handler);
-                asyncCall([$controller, 'onConnect'], $connection, $vars);
-                $connection->onMessage = asyncCoroutine([$controller, 'onMessage']);
-                $connection->onClose = asyncCoroutine([$controller, 'onClose']);
+                $controller->onConnect($connection, $vars);
+                $connection->onMessage = asyncCallable([$controller, 'onMessage']);
+                $connection->onClose = asyncCallable([$controller, 'onClose']);
                 break;
             case Dispatcher::NOT_FOUND:
                 $eventDispatcher = $this->app->container->get(EventDispatcherInterface::class);

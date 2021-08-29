@@ -4,8 +4,6 @@ namespace Wind\Web;
 
 use Workerman\Protocols\Http\Response as WorkermanResponse;
 
-use function Amp\call;
-
 class Action implements MiddlewareInterface
 {
 
@@ -59,22 +57,22 @@ class Action implements MiddlewareInterface
             }
         }
 
-        $this->middlewares[]  = $this; //<- cycles reference
+        $this->middlewares[] = $this; //<- cycles reference
 
         $this->isController = (is_array($this->action) && is_object($this->action[0]) && $this->action[0] instanceof Controller);
     }
 
     public function process(RequestInterface $request, callable $handler)
     {
-        //free cycles reference. 
+        //free cycles reference.
         $this->middlewares = null;
 
         //init() 在此处处理协程的返回状态，所以 init 中可以使用协程，需要在控制器初始化时使用协程请在 init 中使用
         if ($this->isController) {
-            yield call($this->invoker, [$this->action[0], 'init'], $this->vars);
+            call_user_func($this->invoker, [$this->action[0], 'init'], $this->vars);
         }
 
-        $content = yield call($this->invoker, $this->action, $this->vars);
+        $content = call_user_func($this->invoker, $this->action, $this->vars);
 
         if ($content instanceof Response || $content instanceof WorkermanResponse) {
             return $content;
@@ -95,7 +93,7 @@ class Action implements MiddlewareInterface
     {
         $middleware = current($this->middlewares);
         next($this->middlewares);
-        return call([$middleware, 'process'], $request, $this);
+        return $middleware->process($request, $this);
     }
 
 }

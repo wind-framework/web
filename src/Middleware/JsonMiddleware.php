@@ -28,7 +28,7 @@ class JsonMiddleware implements \Wind\Web\MiddlewareInterface
             /**
              * @var Response $response
              */
-            $response = yield $handler($request);
+            $response = $handler($request);
 
             $contentType = $response->getHeaderLine('Content-Type');
 

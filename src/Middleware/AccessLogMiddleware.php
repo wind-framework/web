@@ -34,7 +34,7 @@ class AccessLogMiddleware implements MiddlewareInterface
         /**
          * @var \Psr\Http\Message\ResponseInterface $response
          */
-        $response = yield $handler($request);
+        $response = $handler($request);
 
         $uri = $request->getUri();
         $user = $uri->getUserInfo();

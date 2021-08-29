@@ -23,6 +23,9 @@ use Workerman\Connection\TcpConnection;
 use Workerman\Protocols\Http\Request as RawRequest;
 use Workerman\Protocols\Http\Response as RawResponse;
 use Workerman\Worker;
+
+use function Amp\async;
+use function Amp\asyncCallable;
 use function Amp\call;
 
 class HttpServer extends Worker
@@ -57,7 +60,7 @@ class HttpServer extends Worker
         parent::__construct('http://'.$socket_name, $context_option);
 
         $this->onWorkerStart = [$this, 'onWorkerStart'];
-        $this->onMessage = [$this, 'onMessage'];
+        $this->onMessage = asyncCallable([$this, 'onMessage']);
         $this->app = Application::getInstance();
 
         //初始化依赖注入 callable Invoker
@@ -117,42 +120,42 @@ class HttpServer extends Worker
 
                 $action = new Action($callable, $vars, $this->invoker, $this->middlewares, $target['middlewares'] ?? []);
 
-                call($action, $vars[RequestInterface::class])->onResolve(function($e, $response) use ($connection) {
-                    if ($e === null) {
-                        if ($response instanceof ResponseInterface) {
-                            //X-Workerman-Sendfile supported.
-                            if ($response->hasHeader('X-Workerman-Sendfile')) {
-                                $sendFile = $response->getHeaderLine('X-Workerman-Sendfile');
-                                $headers = $response->withoutHeader('X-Workerman-Sendfile')->getHeaders();
-                                $response = (new RawResponse(200, $headers))->withFile($sendFile);
-                            } else {
-                                $body = $response->getBody();
-                                $contents = $body->__toString();
-                                $body->close();
+                try {
+                    $response = $action($vars[RequestInterface::class]);
 
-                                $response = new RawResponse(
-                                    $response->getStatusCode(),
-                                    $response->getHeaders(),
-                                    $contents
-                                );
-                            }
-                        }
-
-                        $connection->send($response);
-
-                    } elseif ($e instanceof ExitException) {
-                        $connection->send('');
-                    } else {
-                        $eventDispatcher = $this->app->container->get(EventDispatcherInterface::class);
-                        if ($e instanceof \Exception) {
-                            $this->sendServerError($connection, $e);
-                            yield $eventDispatcher->dispatch(new SystemError($e));
+                    if ($response instanceof ResponseInterface) {
+                        //X-Workerman-Sendfile supported.
+                        if ($response->hasHeader('X-Workerman-Sendfile')) {
+                            $sendFile = $response->getHeaderLine('X-Workerman-Sendfile');
+                            $headers = $response->withoutHeader('X-Workerman-Sendfile')->getHeaders();
+                            $response = (new RawResponse(200, $headers))->withFile($sendFile);
                         } else {
-                            yield $eventDispatcher->dispatch(new SystemError($e));
-                            throw $e;
+                            $body = $response->getBody();
+                            $contents = $body->__toString();
+                            $body->close();
+
+                            $response = new RawResponse(
+                                $response->getStatusCode(),
+                                $response->getHeaders(),
+                                $contents
+                            );
                         }
                     }
-                });
+
+                    $connection->send($response);
+
+                } catch (ExitException $e) {
+                    $connection->send('');
+                } catch (\Throwable $e) {
+                    $eventDispatcher = $this->app->container->get(EventDispatcherInterface::class);
+                    if ($e instanceof \Exception) {
+                        $this->sendServerError($connection, $e);
+                        $eventDispatcher->dispatch(new SystemError($e));
+                    } else {
+                        $eventDispatcher->dispatch(new SystemError($e));
+                        throw $e;
+                    }
+                }
                 break;
             case Dispatcher::NOT_FOUND:
                 $this->sendPageNotFound($connection);
