@@ -48,7 +48,7 @@ class WebSocketServer extends Worker
         });;
 
         $this->onWorkerStart = [$this, 'onWorkerStart'];
-        $this->onWebSocketConnect = asyncCallable([$this, 'onWebSocketConnect']);
+        $this->onWebSocketConnect = [$this, 'onWebSocketConnect'];
         $this->app = Application::getInstance();
     }
 
@@ -77,6 +77,7 @@ class WebSocketServer extends Worker
                  * @var WebsocketInterface $controller
                  */
                 $controller = $this->app->container->get($handler);
+                //Todo: May be block because of onConnect is not async call in main stack.
                 $controller->onConnect($connection, $vars);
                 $connection->onMessage = asyncCallable([$controller, 'onMessage']);
                 $connection->onClose = asyncCallable([$controller, 'onClose']);
