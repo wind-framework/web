@@ -38,7 +38,7 @@ class Request implements RequestInterface
     protected $parsedBody;
     protected $uploadedFiles;
     protected $attributes = [];
-    
+
     public function __construct(\Workerman\Protocols\Http\Request $request, TcpConnection $connection)
     {
         $this->request = $request;
@@ -229,8 +229,8 @@ class Request implements RequestInterface
      */
     public function getUploadedFile($name)
     {
-        $uplaodFiles = $this->getUploadedFiles();
-        return $uplaodFiles[$name] ?? null;
+        $uploadFiles = $this->getUploadedFiles();
+        return $uploadFiles[$name] ?? null;
     }
 
     /**
