@@ -144,13 +144,8 @@ class HttpServer extends Worker
                         $connection->send('');
                     } else {
                         $eventDispatcher = $this->app->container->get(EventDispatcherInterface::class);
-                        if ($e instanceof \Exception) {
-                            $this->sendServerError($connection, $e);
-                            yield $eventDispatcher->dispatch(new SystemError($e));
-                        } else {
-                            yield $eventDispatcher->dispatch(new SystemError($e));
-                            throw $e;
-                        }
+                        $this->sendServerError($connection, $e);
+                        yield $eventDispatcher->dispatch(new SystemError($e));
                     }
                 });
                 break;
