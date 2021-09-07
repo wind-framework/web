@@ -148,13 +148,8 @@ class HttpServer extends Worker
                     $connection->send('');
                 } catch (\Throwable $e) {
                     $eventDispatcher = $this->app->container->get(EventDispatcherInterface::class);
-                    if ($e instanceof \Exception) {
-                        $this->sendServerError($connection, $e);
-                        $eventDispatcher->dispatch(new SystemError($e));
-                    } else {
-                        $eventDispatcher->dispatch(new SystemError($e));
-                        throw $e;
-                    }
+                    $this->sendServerError($connection, $e);
+                    $eventDispatcher->dispatch(new SystemError($e));
                 }
                 break;
             case Dispatcher::NOT_FOUND:
