@@ -24,9 +24,7 @@ use Workerman\Protocols\Http\Request as RawRequest;
 use Workerman\Protocols\Http\Response as RawResponse;
 use Workerman\Worker;
 
-use function Amp\async;
-use function Amp\asyncCallable;
-use function Amp\call;
+use function Amp\coroutine;
 
 class HttpServer extends Worker
 {
@@ -61,6 +59,7 @@ class HttpServer extends Worker
 
         $this->onWorkerStart = [$this, 'onWorkerStart'];
         $this->onMessage = asyncCallable([$this, 'onMessage']);
+
         $this->app = Application::getInstance();
 
         //初始化依赖注入 callable Invoker

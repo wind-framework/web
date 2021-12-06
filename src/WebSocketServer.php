@@ -13,8 +13,6 @@ use Wind\Web\Exception\WebSocketException;
 use Workerman\Worker;
 use Workerman\Connection\TcpConnection;
 
-use function Amp\asyncCallable;
-
 /**
  * WebSocket Server
  */
@@ -48,7 +46,7 @@ class WebSocketServer extends Worker
         });;
 
         $this->onWorkerStart = [$this, 'onWorkerStart'];
-        $this->onWebSocketConnect = [$this, 'onWebSocketConnect'];
+        $this->onWebSocketConnect = asyncCallable([$this, 'onWebSocketConnect']);
         $this->app = Application::getInstance();
     }
 
