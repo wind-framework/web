@@ -46,10 +46,14 @@ class WebSocketServer extends Worker
             foreach ($routes as $path => $controller) {
                 $collector->get($path, $controller);
             }
-        });;
+        });
 
         $this->onWorkerStart = [$this, 'onWorkerStart'];
         $this->onWebSocketConnect = [$this, 'onWebSocketConnect'];
+
+        $stopCallback = config('websocket.callbacks.on_worker_stop');
+        $this->onWorkerStop = asyncCoroutine($stopCallback);
+
         $this->app = Application::getInstance();
     }
 
@@ -59,6 +63,9 @@ class WebSocketServer extends Worker
     public function onWorkerStart($worker)
     {
         $this->app->startComponents($worker);
+
+        $startCallback = config('websocket.callbacks.on_worker_start');
+        $startCallback && asyncCall($startCallback, $worker);
     }
 
     /**
