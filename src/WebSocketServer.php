@@ -52,7 +52,7 @@ class WebSocketServer extends Worker
         $this->onWebSocketConnect = [$this, 'onWebSocketConnect'];
 
         $stopCallback = config('websocket.callbacks.on_worker_stop');
-        $this->onWorkerStop = asyncCoroutine($stopCallback);
+        $stopCallback && $this->onWorkerStop = asyncCoroutine($stopCallback);
 
         $this->app = Application::getInstance();
     }
