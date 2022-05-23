@@ -18,5 +18,10 @@
         "psr-4": {
             "Wind\\Web\\": "src/"
         }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "0.2.x-dev"
+        }
     }
 }
