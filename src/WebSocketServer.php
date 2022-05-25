@@ -34,15 +34,21 @@ class WebSocketServer extends Worker
      */
     private $dispatcher;
 
-    public function __construct($socket_name = '', array $context_option = array())
+    /**
+     * Callbacks
+     * @var callable
+     */
+    private $onStart;
+
+    public function __construct($socket_name = '', array $config = [])
     {
-        parent::__construct('websocket://'.$socket_name, $context_option);
+        parent::__construct('websocket://'.$socket_name, $config['context_option'] ?? []);
 
         $this->app = Application::getInstance();
 
         //Router dispatcher
-        $this->dispatcher = \FastRoute\simpleDispatcher(function(RouteCollector $collector) {
-            $routes = config('websocket.routes', []);
+        $this->dispatcher = \FastRoute\simpleDispatcher(function(RouteCollector $collector) use ($config) {
+            $routes = config($config['router'] ?? 'websocket', []);
             foreach ($routes as $path => $controller) {
                 $collector->get($path, $controller);
             }
@@ -51,8 +57,24 @@ class WebSocketServer extends Worker
         $this->onWorkerStart = [$this, 'onWorkerStart'];
         $this->onWebSocketConnect = [$this, 'onWebSocketConnect'];
 
-        $stopCallback = config('websocket.callbacks.on_worker_stop');
-        $stopCallback && $this->onWorkerStop = asyncCoroutine($stopCallback);
+        isset($config['on_start']) && $this->onStart = $config['on_start'];
+
+        if (isset($config['on_stop'])) {
+            $this->onWorkerStop = asyncCoroutine($config['on_stop']);
+        }
+
+        if (isset($config['on_ping'])) {
+            $this->onWebSocketPing = static function($connection, $data) use ($config) {
+                //Must response immediately, or else will not send pong.
+                $connection->send($data);
+                //Async call will run in loop when next tick, it's not immediately.
+                asyncCall($config['on_ping'], $connection, $data);
+            };
+        }
+
+        if (isset($config['on_pong'])) {
+            $this->onWebSocketPong = asyncCoroutine($config['on_pong']);
+        }
 
         $this->app = Application::getInstance();
     }
@@ -60,12 +82,13 @@ class WebSocketServer extends Worker
     /**
      * @param Worker $worker
      */
-    public function onWorkerStart($worker)
+    public function onWorkerStart(Worker $worker)
     {
         $this->app->startComponents($worker);
 
-        $startCallback = config('websocket.callbacks.on_worker_start');
-        $startCallback && asyncCall($startCallback, $worker);
+        if (isset($this->onStart)) {
+            asyncCall($this->onStart, $worker);
+        }
     }
 
     /**
@@ -88,6 +111,20 @@ class WebSocketServer extends Worker
                 asyncCall([$controller, 'onConnect'], $connection, $vars);
                 $connection->onMessage = asyncCoroutine([$controller, 'onMessage']);
                 $connection->onClose = asyncCoroutine([$controller, 'onClose']);
+
+                if (is_callable([$controller, 'onPing'])) {
+                    $connection->onWebSocketPing = static function($connection, $data) use ($controller) {
+                        //Must response immediately, or else will not send pong.
+                        $connection->send($data);
+                        //async call will run in loop when next tick, it's not immediately.
+                        asyncCall([$controller, 'onPing'], $connection, $data);
+                    };
+                }
+
+                if (is_callable([$controller, 'onPong'])) {
+                    $connection->onWebSocketPong = asyncCoroutine([$controller, 'onPong']);
+                }
+
                 break;
             case Dispatcher::NOT_FOUND:
                 $eventDispatcher = $this->app->container->get(EventDispatcherInterface::class);

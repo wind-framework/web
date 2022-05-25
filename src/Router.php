@@ -19,11 +19,14 @@ class Router
      */
     private $collector;
 
-    public function __construct()
+    /**
+     * @param string $config The router config name
+     */
+    public function __construct($config)
     {
-        $this->dispatcher = \FastRoute\simpleDispatcher(function(RouteCollector $r) {
+        $this->dispatcher = \FastRoute\simpleDispatcher(function(RouteCollector $r) use ($config) {
             $this->collector = $r;
-            $groups = \config('routes', []);
+            $groups = \config($config, []);
             $this->addGroups($groups);
             $this->collector = null;
         });
