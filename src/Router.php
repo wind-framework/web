@@ -19,12 +19,22 @@ class Router
      */
     private $collector;
 
+    private static $annotationRoutes = [];
+
     public function __construct()
     {
         $this->dispatcher = \FastRoute\simpleDispatcher(function(RouteCollector $r) {
             $this->collector = $r;
             $groups = \config('routes', []);
             $this->addGroups($groups);
+
+            if (self::$annotationRoutes) {
+                foreach (self::$annotationRoutes as $row) {
+                    $r->addRoute($row['method'], $row['path'], $row['target']);
+                }
+                self::$annotationRoutes = [];
+            }
+
             $this->collector = null;
         });
     }
@@ -116,6 +126,19 @@ class Router
     private function joinPath($prefix, $path)
     {
         return rtrim($prefix, '/').'/'.ltrim($path, '/');
+    }
+
+    /**
+     * Add annotation route
+     * MUST call before Router instanced.
+     *
+     * @param string $method
+     * @param string $path
+     * @param array $target
+     */
+    public static function addAnnotationRoute($method, $path, $target)
+    {
+        self::$annotationRoutes[] = compact('method', 'path', 'target');
     }
 
 }
