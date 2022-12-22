@@ -53,9 +53,9 @@ class HttpServer extends Worker
      */
     public $middlewares = [];
 
-    public function __construct($socket_name = '', array $context_option = array())
+    public function __construct($socket_name = '', array $config = [])
     {
-        parent::__construct('http://'.$socket_name, $context_option);
+        parent::__construct('http://'.$socket_name, $config['context_options'] ?? []);
 
         $this->onWorkerStart = [$this, 'onWorkerStart'];
         $this->onMessage = asyncCallable([$this, 'onMessage']);
@@ -75,7 +75,7 @@ class HttpServer extends Worker
         $this->invoker = new Invoker($parameterResolver, $this->app->container);
 
         //Router
-        $this->router = new Router;
+        $this->router = new Router($config['router'] ?? 'routes');
 
         //Middlewares
         $middlewares = $this->app->config->get('middlewares');

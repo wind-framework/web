@@ -7,6 +7,7 @@ namespace Wind\Web;
 use FastRoute\RouteCollector;
 use FastRoute\Dispatcher;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Revolt\EventLoop;
 use Wind\Base\Application;
 use Wind\Base\Event\SystemError;
 use Wind\Web\Exception\WebSocketException;
@@ -31,15 +32,21 @@ class WebSocketServer extends Worker
      */
     private $dispatcher;
 
-    public function __construct($socket_name = '', array $context_option = array())
+    /**
+     * Callbacks
+     * @var callable
+     */
+    private $onStart;
+
+    public function __construct($socket_name = '', array $config = [])
     {
-        parent::__construct('websocket://'.$socket_name, $context_option);
+        parent::__construct('websocket://'.$socket_name, $config['context_option'] ?? []);
 
         $this->app = Application::getInstance();
 
         //Router dispatcher
-        $this->dispatcher = \FastRoute\simpleDispatcher(function(RouteCollector $collector) {
-            $routes = config('websocket.routes', []);
+        $this->dispatcher = \FastRoute\simpleDispatcher(function(RouteCollector $collector) use ($config) {
+            $routes = config($config['router'] ?? 'websocket', []);
             foreach ($routes as $path => $controller) {
                 $collector->get($path, $controller);
             }
@@ -47,6 +54,26 @@ class WebSocketServer extends Worker
 
         $this->onWorkerStart = [$this, 'onWorkerStart'];
         $this->onWebSocketConnect = asyncCallable([$this, 'onWebSocketConnect']);
+
+        isset($config['on_start']) && $this->onStart = $config['on_start'];
+
+        if (isset($config['on_stop'])) {
+            $this->onWorkerStop = $config['on_stop'];
+        }
+
+        if (isset($config['on_ping'])) {
+            $this->onWebSocketPing = static function($connection, $data) use ($config) {
+                //Must response immediately, or else will not send pong.
+                $connection->send($data);
+                //Async call will run in loop when next tick, it's not immediately.
+                EventLoop::queue(static fn() => $config['on_ping']($connection, $data));
+            };
+        }
+
+        if (isset($config['on_pong'])) {
+            $this->onWebSocketPong = asyncCallable($config['on_pong']);
+        }
+
         $this->app = Application::getInstance();
     }
 
@@ -56,6 +83,10 @@ class WebSocketServer extends Worker
     public function onWorkerStart($worker)
     {
         $this->app->startComponents($worker);
+
+        if (isset($this->onStart)) {
+            call_user_func($this->onStart, $worker);
+        }
     }
 
     /**
@@ -75,10 +106,23 @@ class WebSocketServer extends Worker
                  * @var WebsocketInterface $controller
                  */
                 $controller = $this->app->container->get($handler);
-                //Todo: May be block because of onConnect is not async call in main stack.
-                $controller->onConnect($connection, $vars);
+                EventLoop::queue(static fn() => $controller->onConnect($connection, $vars));
                 $connection->onMessage = asyncCallable([$controller, 'onMessage']);
                 $connection->onClose = asyncCallable([$controller, 'onClose']);
+
+
+                if (is_callable([$controller, 'onPing'])) {
+                    $connection->onWebSocketPing = static function($connection, $data) use ($controller) {
+                        //Must response immediately, or else will not send pong.
+                        $connection->send($data);
+                        //async call will run in loop when next tick, it's not immediately.
+                        EventLoop::queue(static fn() => call_user_func([$controller, 'onPing'], $connection, $data));
+                    };
+                }
+
+                if (is_callable([$controller, 'onPong'])) {
+                    $connection->onWebSocketPong = asyncCallable([$controller, 'onPong']);
+                }
                 break;
             case Dispatcher::NOT_FOUND:
                 $eventDispatcher = $this->app->container->get(EventDispatcherInterface::class);

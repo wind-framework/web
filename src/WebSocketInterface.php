@@ -6,6 +6,10 @@ use Workerman\Connection\TcpConnection;
 
 /**
  * WebSocket Controller Interface
+ *
+ * Optional methods:
+ * onPing(TcpConnection $connection, $data)
+ * onPong(TcpConnection $connection, $data)
  */
 interface WebSocketInterface
 {
