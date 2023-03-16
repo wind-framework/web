@@ -118,7 +118,7 @@ class Router
 
     private function joinPath($prefix, $path)
     {
-        return rtrim($prefix, '/').'/'.ltrim($path, '/');
+        return $path ? rtrim($prefix, '/').'/'.ltrim($path, '/') : $prefix;
     }
 
 }
