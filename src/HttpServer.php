@@ -24,8 +24,6 @@ use Workerman\Protocols\Http\Request as RawRequest;
 use Workerman\Protocols\Http\Response as RawResponse;
 use Workerman\Worker;
 
-use function Amp\coroutine;
-
 class HttpServer extends Worker
 {
 
@@ -76,15 +74,6 @@ class HttpServer extends Worker
 
         //Router
         $this->router = new Router($config['router'] ?? 'routes');
-
-        //Middlewares
-        $middlewares = $this->app->config->get('middlewares');
-
-        if ($middlewares) {
-            foreach ($middlewares as $middleware) {
-                $this->middlewares[] = $this->app->container->make($middleware);
-            }
-        }
     }
 
     /**
@@ -92,6 +81,16 @@ class HttpServer extends Worker
      */
     public function onWorkerStart($worker)
     {
+        //Middlewares
+        //User business code must in worker, not main process, to prevent some initialize from main process
+        $middlewares = $this->app->config->get('middlewares');
+
+        if ($middlewares) {
+            foreach ($middlewares as $middleware) {
+                $this->middlewares[] = $this->app->container->make($middleware);
+            }
+        }
+
         $this->app->startComponents($worker);
         $this->app->container->set(Router::class, $this->router);
     }

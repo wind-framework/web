@@ -3,6 +3,7 @@
 namespace Wind\Web;
 
 use Psr\Http\Message\UriInterface;
+use Wind\Base\Context;
 use Wind\Web\Common\MessageTrait;
 use Workerman\Connection\TcpConnection;
 
@@ -44,6 +45,8 @@ class Request implements RequestInterface
         $this->request = $request;
         $this->connection = $connection;
         $this->initHeaders($request->header());
+
+        Context::set(self::class, $this);
     }
 
     public function get($key, $defaultValue = null) {
@@ -299,6 +302,18 @@ class Request implements RequestInterface
         $req = clone $this;
         unset($req->attributes[$name]);
         return $req;
+    }
+
+    /**
+     * Get current request instance
+     *
+     * This is only available for current call stack context.
+     *
+     * @return self
+     */
+    public static function current(): self
+    {
+        return Context::get(self::class);
     }
 
 }
