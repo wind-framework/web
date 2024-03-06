@@ -51,7 +51,21 @@ class JsonMiddleware implements \Wind\Web\MiddlewareInterface
             if (config('debug', false)) {
                 $content['file'] = $e->getFile();
                 $content['line'] = $e->getLine();
-                $content['trace'] = $e->getTrace();
+
+                //format trace as normal array
+                $traces = [] ;
+
+                foreach ($e->getTrace() as $trace) {
+                    if (isset($trace['args'])) {
+                        unset($trace['args']);
+                    }
+                    if (isset($trace['object'])) {
+                        unset($trace['object']);
+                    }
+                    $traces[] = $trace;
+                }
+
+                $content['trace'] = $traces;
             }
 
             return new Response($status, json_encode($content, $jsonOptions), [
