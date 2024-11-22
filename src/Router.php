@@ -107,7 +107,10 @@ class Router
                 $path = $this->joinPath($options['prefix'], $path);
             }
 
-            if (is_string($target) || $target instanceof \Closure) {
+            // \App\Controller\MyController::index
+            // function() { return 'Hello World' }
+            // [\App\Controller\MyController::class, 'index']
+            if (is_string($target) || $target instanceof \Closure || (is_array($target) && array_is_list($target) && count($target) == 2)) {
                 $target = [
                     'handler' => $target
                 ];

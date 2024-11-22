@@ -35,7 +35,7 @@ class JsonMiddleware implements \Wind\Web\MiddlewareInterface
             if (!$contentType || !str_contains($contentType, 'json')) {
                 $body = Stream::create(json_encode((string)$response->getBody(), $jsonOptions));
                 return $response->withBody($body)
-                    ->withHeader('content-type', 'application/json; charset=utf-8');
+                    ->withHeader('Content-Type', 'application/json; charset=utf-8');
             } else {
                 return $response;
             }
@@ -69,7 +69,7 @@ class JsonMiddleware implements \Wind\Web\MiddlewareInterface
             }
 
             return new Response($status, json_encode($content, $jsonOptions), [
-                'content-type' => 'application/json; charset=utf-8'
+                'Content-Type' => 'application/json; charset=utf-8'
             ]);
         }
     }

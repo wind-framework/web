@@ -34,13 +34,8 @@ trait MessageTrait
             } else {
                 $this->headers[$key] = [$value];
             }
-            $this->headerNames[$this->normalize($key)] = $key;
+            $this->headerNames[strtolower($key)] = $key;
         }
-    }
-
-    private function normalize($name)
-    {
-        return \strtr($name, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz');
     }
 
     public function withProtocolVersion($version)
@@ -67,7 +62,7 @@ trait MessageTrait
      */
     public function hasHeader($name)
     {
-        return isset($this->headerNames[$this->normalize($name)]);
+        return isset($this->headerNames[strtolower($name)]);
     }
 
     /**
@@ -75,8 +70,8 @@ trait MessageTrait
      */
     public function getHeader($name)
     {
-        $name = $this->normalize($name);
-        return isset($this->headerNames[$name]) ? $this->headers[$this->headerNames[$name]] : [];
+        $normalized = strtolower($name);
+        return isset($this->headerNames[$normalized]) ? $this->headers[$this->headerNames[$normalized]] : [];
     }
 
     /**
@@ -93,7 +88,7 @@ trait MessageTrait
      */
     public function withHeader($name, $value)
     {
-        $normalized = $this->normalize($name);
+        $normalized = strtolower($name);
         $msg = clone $this;
 
         if (isset($msg->headerNames[$normalized])) {
@@ -111,7 +106,7 @@ trait MessageTrait
      */
     public function withAddedHeader($name, $value)
     {
-        $normalized = $this->normalize($name);
+        $normalized = strtolower($name);
         $msg = clone $this;
 
         if (!isset($msg->headerNames[$normalized])) {
@@ -126,7 +121,7 @@ trait MessageTrait
         } else {
             $msg->headers[$name][] = $value;
         }
-        
+
         return $msg;
     }
 
@@ -139,9 +134,9 @@ trait MessageTrait
             return $this;
         }
 
-        $normalized = $this->normalize($name);
+        $normalized = strtolower($name);
         $msg = clone $this;
-        
+
         unset($msg->headers[$this->headerNames[$normalized]], $msg->headerNames[$normalized]);
 
         return $msg;
