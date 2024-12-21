@@ -26,9 +26,12 @@ class ServerSentEventsResponse extends Response
 
     private $stream;
 
-    public function __construct($statusCode=200, $headers=[])
+    /**
+     * @param float $idleTimeout Force end stream after ByteStream idle (no write, no read) seconds, 0 means no timeout
+     */
+    public function __construct($statusCode=200, $headers=[], int $bufferSize = 4096, float $idleTimeout = 30)
     {
-        $this->stream = new ByteStream();
+        $this->stream = new ByteStream($bufferSize, $idleTimeout);
         $headers['Content-Type'] = 'text/event-stream';
         parent::__construct($statusCode, $this->stream, $headers);
     }
@@ -36,6 +39,16 @@ class ServerSentEventsResponse extends Response
     public function end()
     {
         $this->stream->end();
+    }
+
+    /**
+     * Check connection is writable (is closed)
+     *
+     * @return bool
+     */
+    public function isWritable()
+    {
+        return $this->stream->isWritable();
     }
 
     /**
