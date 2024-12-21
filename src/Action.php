@@ -2,6 +2,7 @@
 
 namespace Wind\Web;
 
+use Psr\Http\Message\ResponseInterface;
 use Workerman\Protocols\Http\Response as WorkermanResponse;
 
 class Action implements MiddlewareInterface
@@ -74,7 +75,7 @@ class Action implements MiddlewareInterface
 
         $content = call_user_func($this->invoker, $this->action, $this->vars);
 
-        if ($content instanceof Response || $content instanceof WorkermanResponse) {
+        if ($content instanceof ResponseInterface || $content instanceof WorkermanResponse) {
             return $content;
         }
 

@@ -19,7 +19,9 @@ use Wind\Base\{
     Exception\CallableException,
     Exception\ExitException
 };
+use Wind\Web\Stream\StreamingInterface;
 use Workerman\Connection\TcpConnection;
+use Workerman\Protocols\Http\Chunk;
 use Workerman\Protocols\Http\Request as RawRequest;
 use Workerman\Protocols\Http\Response as RawResponse;
 use Workerman\Worker;
@@ -105,7 +107,7 @@ class HttpServer extends Worker
 
         switch ($routeInfo[0]) {
             case Dispatcher::FOUND:
-                list(, $target, $vars) = $routeInfo;
+                [, $target, $vars] = $routeInfo;
                 try {
                     $callable = wrapCallable($target['handler'], false);
                 } catch (CallableException $e) {
@@ -122,21 +124,43 @@ class HttpServer extends Worker
                     $response = $action($vars[RequestInterface::class]);
 
                     if ($response instanceof ResponseInterface) {
-                        //X-Workerman-Sendfile supported.
                         if ($response->hasHeader('X-Workerman-Sendfile')) {
+                            //X-Workerman-Sendfile supported.
                             $sendFile = $response->getHeaderLine('X-Workerman-Sendfile');
                             $headers = $response->withoutHeader('X-Workerman-Sendfile')->getHeaders();
+                            $headers = $this->flattenHeaders($headers);
                             $response = (new RawResponse(200, $headers))->withFile($sendFile);
                         } else {
                             $body = $response->getBody();
-                            $contents = $body->__toString();
-                            $body->close();
+                            $headers = $this->flattenHeaders($response->getHeaders());
 
-                            $response = new RawResponse(
-                                $response->getStatusCode(),
-                                $response->getHeaders(),
-                                $contents
-                            );
+                            if ($body instanceof StreamingInterface) {
+                                //Streamed response
+                                $wrapper = $response->getHeaderLine('Transfer-Encoding') == 'chunked' ? Chunk::class : Buffer::class;
+                                $response = new RawResponse($response->getStatusCode(), $headers, "\r\n");
+                                $connection->send($response);
+
+                                while (null !== $buffer = $body->read()) {
+                                    if ($connection->send(new $wrapper($buffer)) === false) {
+                                        break;
+                                    }
+                                }
+
+                                //End chunked response
+                                if ($wrapper == Chunk::class) {
+                                    $connection->send(new Chunk(''));
+                                } else {
+                                    $connection->close();
+                                }
+
+                                $body->close();
+                                return;
+
+                            } else {
+                                $contents = (string)$body;
+                                $body->close();
+                                $response = new RawResponse($response->getStatusCode(), $headers, $contents);
+                            }
                         }
                     }
 
@@ -150,9 +174,11 @@ class HttpServer extends Worker
                     $eventDispatcher->dispatch(new SystemError($e));
                 }
                 break;
+
             case Dispatcher::NOT_FOUND:
                 $this->sendPageNotFound($connection);
                 break;
+
             case Dispatcher::METHOD_NOT_ALLOWED:
                 //$allowedMethods = $routeInfo[1];
                 $connection->send(new RawResponse(405, [], 'Method Not Allowed'));
@@ -176,4 +202,16 @@ class HttpServer extends Worker
             .'<p>in '.$e->getFile().':'.$e->getLine().'</p>'
             .'<b>Stack trace:</b><pre>'.$e->getTraceAsString().'</pre>'));
     }
+
+    private function flattenHeaders(array $headers): array
+    {
+        $result = [];
+
+        foreach ($headers as $key => $value) {
+            $result[$key] = current($value);
+        }
+
+        return $result;
+    }
+
 }

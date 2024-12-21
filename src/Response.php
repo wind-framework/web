@@ -4,6 +4,7 @@ namespace Wind\Web;
 
 use Psr\Http\Message\StreamInterface;
 use Wind\Web\Common\MessageTrait;
+use Wind\Web\Stream\StreamingInterface;
 
 class Response implements \Psr\Http\Message\ResponseInterface
 {
@@ -103,6 +104,20 @@ class Response implements \Psr\Http\Message\ResponseInterface
         }
 
         $this->protocolVersion = '1.1';
+    }
+
+    /**
+     * Create chunked response by stream
+     *
+     * @param StreamingInterface&StreamInterface $stream ByteStream or IterableStream
+     * @param int $statusCode
+     * @param array $headers
+     * @return self
+     */
+    public static function chunked(StreamingInterface & StreamInterface $stream, $statusCode=200, $headers=[])
+    {
+        $headers['Transfer-Encoding'] = 'chunked';
+        return new self($statusCode, $stream, $headers);
     }
 
     /**
