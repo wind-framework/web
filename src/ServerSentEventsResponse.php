@@ -57,15 +57,15 @@ class ServerSentEventsResponse extends Response
      * @param string $data
      * @param string|null $event
      * @param string|null $id
-     * @param string|null $retry
+     * @param int|null $retry The reconnection time, in milliseconds. see https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#retry
      * @return void
      */
     public function send($data, $event=null, $id=null, $retry=null)
     {
         $content = '';
         $event !== null && $content .= $this->format('event', $event);
-        $id !== null && $content .= $this->format('id', $id);
         $content .= $this->format('data', $data);
+        $id !== null && $content .= $this->format('id', $id);
         $retry !== null && $content .= $this->format('retry', $retry);
         $this->stream->write($content."\n");
     }
