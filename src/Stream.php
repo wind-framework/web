@@ -7,7 +7,7 @@ namespace Wind\Web;
 use Psr\Http\Message\StreamInterface;
 
 /**
- *  * PSR-7 stream implement.
+ * PSR-7 stream implement.
  *
  * Code from https://github.com/Nyholm/psr7/blob/master/src/Stream.php
  *

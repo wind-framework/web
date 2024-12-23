@@ -142,6 +142,7 @@ class HttpServer extends Worker
 
                                 while (null !== $buffer = $body->read()) {
                                     if ($connection->send(new $wrapper($buffer)) === false) {
+                                        //stop send when connection is closed or buffer is full
                                         break;
                                     }
                                 }
