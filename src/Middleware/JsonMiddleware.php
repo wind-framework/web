@@ -47,6 +47,8 @@ class JsonMiddleware implements \Wind\Web\MiddlewareInterface
                 'message' => $e->getMessage()
             ];
 
+            $headers = $e instanceof HttpException ? $e->headers : [];
+
             if (config('debug', false)) {
                 $content['file'] = $e->getFile();
                 $content['line'] = $e->getLine();
@@ -67,9 +69,9 @@ class JsonMiddleware implements \Wind\Web\MiddlewareInterface
                 $content['trace'] = $traces;
             }
 
-            return new Response($status, json_encode($content, $jsonOptions), [
+            return new Response($status, json_encode($content, $jsonOptions), array_merge([
                 'Content-Type' => 'application/json; charset=utf-8'
-            ]);
+            ], $headers));
         }
     }
 

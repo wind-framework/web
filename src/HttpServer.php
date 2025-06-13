@@ -19,11 +19,14 @@ use Wind\Base\{
     Exception\CallableException,
     Exception\ExitException
 };
+use Wind\Web\Exception\HttpException;
 use Wind\Web\Stream\StreamingInterface;
 use Workerman\Connection\TcpConnection;
-use Workerman\Protocols\Http\Chunk;
-use Workerman\Protocols\Http\Request as RawRequest;
-use Workerman\Protocols\Http\Response as RawResponse;
+use Workerman\Protocols\Http\{
+    Chunk,
+    Request as RawRequest,
+    Response as RawResponse
+};
 use Workerman\Worker;
 
 class HttpServer extends Worker
@@ -109,6 +112,7 @@ class HttpServer extends Worker
             case Dispatcher::FOUND:
                 [, $target, $vars] = $routeInfo;
                 try {
+                    //Todo: 由于 wrapCallable 并没有使用 $this->invoker，所以在控制器的构造函数中并不能获取 Request，但理论上到了控制器层面就可以获取了，有改进空间，比如允许 wrapCallable 传递 Invoker
                     $callable = wrapCallable($target['handler'], false);
                 } catch (CallableException $e) {
                     $this->sendServerError($connection, $e);
@@ -199,7 +203,8 @@ class HttpServer extends Worker
      * @param \Throwable $e
      */
     public function sendServerError($connection, $e) {
-        $connection->send(new RawResponse(500, [], '<h1>'.get_class($e).': '.$e->getMessage().'</h1>'
+        $headers = $e instanceof HttpException ? $e->headers : [];
+        $connection->send(new RawResponse(500, $headers, '<h1>'.get_class($e).': '.$e->getMessage().'</h1>'
             .'<p>in '.$e->getFile().':'.$e->getLine().'</p>'
             .'<b>Stack trace:</b><pre>'.$e->getTraceAsString().'</pre>'));
     }
