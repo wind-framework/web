@@ -20,7 +20,6 @@ use Wind\Base\{
     Exception\ExitException
 };
 use Wind\Web\Exception\HttpException;
-use Wind\Web\Stream\StreamingInterface;
 use Workerman\Connection\TcpConnection;
 use Workerman\Protocols\Http\{
     Chunk,
@@ -138,29 +137,45 @@ class HttpServer extends Worker
                             $body = $response->getBody();
                             $headers = $this->flattenHeaders($response->getHeaders());
 
-                            if ($body instanceof StreamingInterface) {
-                                //Streamed response
-                                $wrapper = $response->getHeaderLine('Transfer-Encoding') == 'chunked' ? Chunk::class : Buffer::class;
-                                $response = new RawResponse($response->getStatusCode(), $headers, "\r\n");
-                                $connection->send($response);
+                            if ($response->getHeaderLine('Transfer-Encoding') === 'chunked') {
+                                //Chunked streaming mode
+                                $initBody = $response->getHeaderLine('Content-Type') === 'text/event-stream' ? "\r\n" : '';
+                                $connection->send(new RawResponse($response->getStatusCode(), $headers, $initBody));
 
-                                while (null !== $buffer = $body->read()) {
-                                    if ($connection->send(new $wrapper($buffer)) === false) {
-                                        //stop send when connection is closed or buffer is full
+                                while (!$body->eof() && '' !== ($buffer = $body->read(8192))) {
+                                    if ($connection->send(new Chunk($buffer)) === false) {
+                                        //Stop sending when connection is closed or buffer is full
                                         break;
                                     }
                                 }
 
                                 //End chunked response
-                                if ($wrapper == Chunk::class) {
-                                    $connection->send(new Chunk(''));
-                                } else {
-                                    $connection->close();
-                                }
+                                $connection->send(new Chunk(''));
 
                                 $body->close();
                                 return;
+                            } elseif ($body->getSize() === null) {
+                                //Raw streaming mode
+                                //不能经 Workerman 编码发送头（会被附加 Content-Length 导致客户端提前结束），手工拼头以 raw 方式发送
+                                $headers += ['Connection' => 'close'];
+                                $head = 'HTTP/1.1 '.$response->getStatusCode().' '.($response->getReasonPhrase() ?: 'OK')."\r\n";
+                                foreach ($headers as $name => $value) {
+                                    $head .= "$name: $value\r\n";
+                                }
+                                $connection->send($head."\r\n", true);
 
+                                while (!$body->eof() && '' !== ($buffer = $body->read(8192))) {
+                                    if ($connection->send($buffer, true) === false) {
+                                        //Stop sending when connection is closed or buffer is full
+                                        break;
+                                    }
+                                }
+
+                                //Close connection to finish raw stream
+                                $connection->close();
+
+                                $body->close();
+                                return;
                             } else {
                                 $contents = (string)$body;
                                 $body->close();

@@ -33,6 +33,7 @@ class ServerSentEventsResponse extends Response
     {
         $this->stream = new ByteStream($bufferSize, $idleTimeout);
         $headers['Content-Type'] = 'text/event-stream';
+        $headers['Transfer-Encoding'] = 'chunked';
         parent::__construct($statusCode, $this->stream, $headers);
     }
 

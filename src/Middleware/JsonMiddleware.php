@@ -6,7 +6,6 @@ use Psr\Http\Message\ServerRequestInterface;
 use Wind\Web\Exception\HttpException;
 use Wind\Web\Response;
 use Wind\Web\Stream;
-use Wind\Web\Stream\StreamingInterface;
 
 /**
  * JsonMiddleware
@@ -31,7 +30,7 @@ class JsonMiddleware implements \Wind\Web\MiddlewareInterface
              */
             $response = $handler($request);
 
-            if (!$response->hasHeader('Content-Type') && !$response->getBody() instanceof StreamingInterface) {
+            if (!$response->hasHeader('Content-Type') && $response->getBody()->getSize() !== null) {
                 $body = Stream::create(json_encode((string)$response->getBody(), $jsonOptions));
                 return $response->withBody($body)
                     ->withHeader('Content-Type', 'application/json; charset=utf-8');

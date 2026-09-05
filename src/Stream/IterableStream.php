@@ -23,7 +23,7 @@ use function Amp\ByteStream\buffer;
  * return new Response(200, new IterableStream($iterable));
  * ```
  */
-final class IterableStream implements StreamInterface, StreamingInterface
+final class IterableStream implements StreamInterface
 {
 
     use NormalizeStream;
@@ -42,7 +42,7 @@ final class IterableStream implements StreamInterface, StreamingInterface
 
     public function eof()
     {
-        return $this->stream->isReadable();
+        return !$this->stream->isReadable();
     }
 
     public function isWritable()
@@ -60,9 +60,9 @@ final class IterableStream implements StreamInterface, StreamingInterface
         return $this->stream->isReadable();
     }
 
-    public function read($length=-1)
+    public function read(int $length)
     {
-        return $this->stream->read();
+        return $this->stream->read() ?? '';
     }
 
     public function getContents()

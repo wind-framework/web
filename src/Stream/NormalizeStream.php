@@ -18,9 +18,13 @@ trait NormalizeStream
     public function detach()
     {}
 
+    /**
+     * Always return null to indicate the size is unknown,
+     * so that HttpServer will send it as a streamed response.
+     */
     public function getSize()
     {
-        return 0;
+        return null;
     }
 
     public function tell()

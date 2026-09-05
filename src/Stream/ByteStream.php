@@ -32,7 +32,7 @@ use function Amp\ByteStream\buffer;
  * return new Response(200, $stream);
  * ```
  */
-final class ByteStream implements StreamInterface, StreamingInterface
+final class ByteStream implements StreamInterface
 {
 
     use NormalizeStream;
@@ -75,7 +75,7 @@ final class ByteStream implements StreamInterface, StreamingInterface
 
     public function eof()
     {
-        return $this->source->isReadable();
+        return !$this->source->isReadable();
     }
 
     public function isWritable()
@@ -95,10 +95,10 @@ final class ByteStream implements StreamInterface, StreamingInterface
         return $this->source->isReadable();
     }
 
-    public function read($length=-1)
+    public function read(int $length)
     {
         $this->activate();
-        return $this->source->read();
+        return $this->source->read() ?? '';
     }
 
     public function getContents()
