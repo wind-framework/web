@@ -14,13 +14,22 @@ class FileServer
      *
      * @param Config $config
      * @param Request $request
-     * @param $filename
+     * @param string $filename
      * @return void|Response
      */
     public static function sendStatic(Config $config, Request $request, $filename)
     {
         $config = $config->get('server.static_file');
-        $path = $config['document_root'].'/'.$filename;
+
+        //路径中可能包含 ../ 等相对路径段（解码后还原），须确保最终路径仍位于 document_root 内，防止路径穿越
+        $documentRoot = realpath($config['document_root']);
+
+        //对URL编码的文件名进行解码，以支持中文等多字节字符的路径
+        $path = realpath($config['document_root'].'/'.rawurldecode($filename));
+
+        if ($documentRoot === false || $path === false || !str_starts_with($path, $documentRoot.DIRECTORY_SEPARATOR)) {
+            return new Response(404);
+        }
 
         if ($config['enable_negotiation_cache'] && is_file($path)) {
             if (!empty($ifModifiedSince = $request->header('if-modified-since'))) {
